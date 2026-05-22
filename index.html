@@ -33,40 +33,18 @@
         </nav>
 
         <main class="p-6">
-            <div id="view-inventory" class="tab-view">
-                <button onclick="openModal('inventory')" class="bg-yellow-600 px-4 py-2 mb-4 rounded">+ Add Stock</button>
-                <table class="w-full bg-gray-800 rounded-lg overflow-hidden">
-                    <thead class="bg-gray-700 text-xs uppercase"><tr><th class="p-4">Brand</th><th class="p-4">Model</th><th class="p-4">Qty</th><th class="p-4">Price</th></tr></thead>
-                    <tbody id="table-inventory"></tbody>
-                </table>
-            </div>
-
-            <div id="view-sales" class="tab-view hidden">
-                <table class="w-full bg-gray-800 rounded-lg overflow-hidden">
-                    <thead class="bg-gray-700 text-xs uppercase"><tr><th class="p-4">Date</th><th class="p-4">Item</th><th class="p-4">Paid</th></tr></thead>
-                    <tbody id="table-sales"></tbody>
-                </table>
-            </div>
-
-            <div id="view-customers" class="tab-view hidden">
-                <table class="w-full bg-gray-800 rounded-lg overflow-hidden">
-                    <thead class="bg-gray-700 text-xs uppercase"><tr><th class="p-4">Name</th><th class="p-4">Phone</th><th class="p-4">Credit</th></tr></thead>
-                    <tbody id="table-customers"></tbody>
-                </table>
-            </div>
-
-            <div id="view-suppliers" class="tab-view hidden">
-                <button onclick="openModal('suppliers')" class="bg-yellow-600 px-4 py-2 mb-4 rounded">+ Add Supplier</button>
-                <table class="w-full bg-gray-800 rounded-lg overflow-hidden">
-                    <thead class="bg-gray-700 text-xs uppercase"><tr><th class="p-4">Name</th><th class="p-4">Contact</th><th class="p-4">Country</th></tr></thead>
-                    <tbody id="table-suppliers"></tbody>
-                </table>
-            </div>
+            <div id="view-inventory" class="tab-view"><table class="w-full bg-gray-800 rounded-lg"><tbody id="table-inventory"></tbody></table></div>
+            <div id="view-sales" class="tab-view hidden"><table class="w-full bg-gray-800 rounded-lg"><tbody id="table-sales"></tbody></table></div>
+            <div id="view-customers" class="tab-view hidden"><table class="w-full bg-gray-800 rounded-lg"><tbody id="table-customers"></tbody></table></div>
+            <div id="view-suppliers" class="tab-view hidden"><table class="w-full bg-gray-800 rounded-lg"><tbody id="table-suppliers"></tbody></table></div>
         </main>
     </div>
 
     <script>
-        const _supabase = supabase.createClient("https://sauwqklxwmzhkkidvony.supabase.co", "YOUR_ANON_KEY");
+        // Your private credentials are now embedded
+        const SUPABASE_URL = "https://sauwqklxwmzhkkidvony.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhdXdxa2x4d216aGtraWR2b255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Mzk2NDQsImV4cCI6MjA5NTAxNTY0NH0.Rcgv05XPO-C4k_vt3nbta81-0zH4c-ReG_pCmag7yn0";
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         function switchTab(id) {
             document.querySelectorAll('.tab-view').forEach(v => v.classList.add('hidden'));
@@ -81,7 +59,6 @@
                 _supabase.from('suppliers').select('*')
             ]);
             
-            // Re-use a universal function that builds rows based on the actual columns in the database
             renderTable('table-inventory', inv.data || []);
             renderTable('table-sales', sal.data || []);
             renderTable('table-customers', cus.data || []);
@@ -92,12 +69,11 @@
             const tbody = document.getElementById(tbodyId);
             tbody.innerHTML = '';
             if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="10" class="p-4 text-center">No records found.</td></tr>`;
+                tbody.innerHTML = `<tr><td class="p-4 text-center">No records found.</td></tr>`;
                 return;
             }
             data.forEach(item => {
                 const tr = document.createElement('tr');
-                // This line automatically grabs every field (Brand, Model, Qty, etc) and makes a cell for it
                 tr.innerHTML = Object.values(item).map(val => `<td class="p-4 border-b border-gray-700">${val}</td>`).join('');
                 tbody.appendChild(tr);
             });
