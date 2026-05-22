@@ -255,6 +255,12 @@
         const shopNames = { "1": "Shop 1", "2": "Shop 2", "3": "Shop 3", "4": "Shop 4" };
         const PASSWORDS = { owner: "owner123", "1": "shop1pass", "2": "shop2pass", "3": "shop3pass", "4": "shop4pass" };
 
+        function findCustomerName(id) {
+            if (!id || !globalCustomers) return 'Walking Retail Customer';
+            const found = globalCustomers.find(c => c.id == id);
+            return found ? found.name : 'Walking Retail Customer';
+        }
+
         function handleLogin() {
             const role = document.getElementById('login-role').value;
             const pass = document.getElementById('login-pass').value;
@@ -387,7 +393,6 @@
             document.getElementById('stat-receivables').textContent = totalReceivables.toLocaleString('en-US', {maximumFractionDigits: 3}) + " KD";
         }
 
-        // FIXED: ADDED COMPREHENSIVE SAFESTART TO GUARD AGAINST MISSING ELEMENTS
         function filterAllTables() {
             const invInput = document.getElementById('search-inventory');
             const salesInput = document.getElementById('search-sales');
@@ -401,7 +406,7 @@
 
             const filteredInventory = globalInventory.filter(item => {
                 if(!invQuery) return true;
-                const sName = (shopNames[item.shop] || '').toLowerCase();
+                const sName = (shopNames[item.shop] || 'Unknown').toLowerCase();
                 const bName = (item.brand || '').toLowerCase();
                 const mName = (item.model || '').toLowerCase();
                 const supName = (item.supplier_name || 'Direct Import').toLowerCase();
@@ -412,7 +417,7 @@
             const filteredSales = globalSales.filter(sale => {
                 if(!salesQuery) return true;
                 const sDate = (sale.date || '').toLowerCase();
-                const sShop = (shopNames[sale.shop] || '').toLowerCase();
+                const sShop = (shopNames[sale.shop] || 'Unknown').toLowerCase();
                 const sWatch = `${sale.brand || ''} ${sale.model || ''}`.toLowerCase();
                 const sCust = findCustomerName(sale.customer_id).toLowerCase();
                 return sDate.includes(salesQuery) || sShop.includes(salesQuery) || sWatch.includes(salesQuery) || sCust.includes(salesQuery);
@@ -482,7 +487,7 @@
                 const tr = document.createElement('tr'); tr.className = "hover:bg-gray-700/50 transition";
                 tr.innerHTML = `
                     <td class="p-4 text-xs font-mono text-gray-400">${sale.date || '—'}</td>
-                    <td class="p-4 text-xs text-gray-400">${shopNames[sale.shop] || '—'}</td>
+                    <td class="p-4 text-xs text-gray-400">${shopNames[sale.shop] || 'Unknown'}</td>
                     <td class="p-4 font-semibold"><span class="text-yellow-500 uppercase font-bold mr-1">${sale.brand}</span> ${sale.model}</td>
                     <td class="p-4 text-center font-bold">${sale.qty}</td>
                     <td class="p-4 text-gray-300 font-medium">${findCustomerName(sale.customer_id)}</td>
@@ -544,11 +549,6 @@
             });
         }
 
-        function findCustomerName(id) {
-            const found = globalCustomers.find(c => c.id == id);
-            return found ? found.name : 'Walking Retail Customer';
-        }
-
         let currentModalTarget = '';
         function openModal(target) {
             currentModalTarget = target; const fields = document.getElementById('form-fields');
@@ -583,7 +583,6 @@
                             <input type="text" name="model" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" required placeholder="e.g. Datejust 41 Blue Diamond">
                         </div>
                     </div>
-                    
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Purchase Price (China RMB ¥)</label>
@@ -594,7 +593,6 @@
                             <input type="number" step="0.001" name="buy_price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm text-emerald-400 font-bold" required placeholder="0.000">
                         </div>
                     </div>
-
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Quantity Pieces</label>
@@ -607,7 +605,6 @@
                             </select>
                         </div>
                     </div>
-
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Retail Target Price (KWD)</label>
@@ -621,7 +618,6 @@
 
             } else if (target === 'sales') {
                 title.textContent = "Record Sale Invoice Transaction";
-                
                 let currentSalesRoleShop = (currentRole === 'owner') ? document.getElementById('owner-shop-filter').value : currentRole;
                 let activeAvailableWatches = globalInventory.filter(w => w.qty > 0);
                 if (currentSalesRoleShop !== 'all') {
@@ -635,10 +631,10 @@
                 fields.innerHTML = `
                     ${targetShopSelector}
                     <div>
-                        <label class="block text-xs font-bold mb-1 uppercase text-yellow-500 tracking-wide">Select Watch (Type name here to search instant)</label>
+                        <label class="block text-xs font-bold mb-1 uppercase text-yellow-500 tracking-wide">Select Watch</label>
                         <select id="sale-watch-select" name="watch_id" class="w-full bg-gray-800 text-white text-sm" required>
-                            <option value="">-- Start typing watch brand or model details... --</option>
-                            ${watchOptions || '<option value="">No pieces loaded in active warehouse registries.</option>'}
+                            <option value="">-- Start typing watch brand... --</option>
+                            ${watchOptions || '<option value="">No pieces available in warehouse registries.</option>'}
                         </select>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
@@ -651,20 +647,19 @@
                             <input type="number" step="0.001" name="sell_price" id="sale-unit-price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm text-yellow-500 font-bold" required placeholder="0.000">
                         </div>
                     </div>
-                    
                     <div class="bg-gray-800/60 p-3 rounded border border-gray-700 space-y-3">
-                        <p class="text-xs font-bold text-yellow-500 uppercase tracking-wide">Customer Details (Leave blank if walk-in cash customer)</p>
+                        <p class="text-xs font-bold text-yellow-500 uppercase tracking-wide">Customer Details</p>
                         <div>
-                            <label class="block text-[11px] uppercase tracking-wider text-gray-400 mb-0.5">Customer Name / Trader Name</label>
+                            <label class="block text-[11px] uppercase text-gray-400 mb-0.5">Customer Name</label>
                             <input type="text" name="manual_cust_name" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-white text-sm" placeholder="e.g. Faisal Al-Rashidi">
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="block text-[11px] uppercase tracking-wider text-gray-400 mb-0.5">Phone Number</label>
+                                <label class="block text-[11px] uppercase text-gray-400 mb-0.5">Phone Number</label>
                                 <input type="text" name="manual_cust_phone" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-white text-sm font-mono" placeholder="e.g. 66554433">
                             </div>
                             <div>
-                                <label class="block text-[11px] uppercase tracking-wider text-gray-400 mb-0.5">Classification</label>
+                                <label class="block text-[11px] uppercase text-gray-400 mb-0.5">Classification</label>
                                 <select name="manual_cust_type" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-white text-sm">
                                     <option value="Retail">Retail Customer</option>
                                     <option value="Dealer">Dealer / Trader</option>
@@ -672,14 +667,13 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="grid grid-cols-2 gap-3 bg-gray-800/40 p-3 rounded border border-gray-800">
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Amount Paid Right Now (KD)</label>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Amount Paid Now (KD)</label>
                             <input type="number" step="0.001" name="paid" id="sale-paid-amount" value="0.000" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm text-emerald-400 font-bold" required>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Primary Payment Mode</label>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Payment Mode</label>
                             <select name="payment" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
                                 <option value="Cash">Cash Currency</option>
                                 <option value="KNET">KNET Card Portal</option>
@@ -694,24 +688,16 @@
                     const paidInp = document.getElementById('sale-paid-amount');
                     const qtyInp = document.getElementById('sale-qty');
 
-                    choicesInstance = new Choices(selectElement, {
-                        searchEnabled: true,
-                        itemSelectText: '',
-                        placeholder: true,
-                        placeholderValue: 'Type brand name or model here to search...',
-                        shouldSort: false
-                    });
+                    choicesInstance = new Choices(selectElement, { searchEnabled: true, itemSelectText: '', placeholder: true, placeholderValue: 'Type name to search...', shouldSort: false });
 
                     function runFormAutofillFields() {
-                        const targetId = selectElement.value;
-                        if(!targetId) return;
+                        const targetId = selectElement.value; if(!targetId) return;
                         const watch = globalInventory.find(w => w.id == targetId);
                         if(watch) {
                             priceInp.value = parseFloat(watch.sell_price).toFixed(3);
                             paidInp.value = (parseFloat(watch.sell_price) * parseInt(qtyInp.value)).toFixed(3);
                         }
                     }
-
                     selectElement.addEventListener('change', runFormAutofillFields);
                     qtyInp.addEventListener('input', runFormAutofillFields);
                 }, 100);
@@ -722,50 +708,50 @@
                     ${targetShopSelector}
                     <div>
                         <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Customer Full Name</label>
-                        <input type="text" name="name" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required placeholder="e.g. Abdullah Al-Mutairi">
+                        <input type="text" name="name" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required placeholder=" Abdullah Al-Mutairi">
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Phone Number (Kuwait)</label>
-                            <input type="text" name="phone" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" placeholder="e.g. 99001122">
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Phone Number</label>
+                            <input type="text" name="phone" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" placeholder="99001122">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Account Classification</label>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Classification</label>
                             <select name="type" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
                                 <option value="Retail">Standard Retail Buyer</option>
-                                <option value="Dealer">Watch Trader / Dealer Network</option>
+                                <option value="Dealer">Watch Trader / Dealer</option>
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Remarks / Business Notes</label>
-                        <textarea name="notes" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm h-16" placeholder="Business notes..."></textarea>
+                        <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Remarks</label>
+                        <textarea name="notes" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm h-16"></textarea>
                     </div>`;
             } else if (target === 'suppliers') {
                 title.textContent = "Register New Supply Vendor Resource";
                 fields.innerHTML = `
                     <div>
                         <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Supplier/Company Name</label>
-                        <input type="text" name="name" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required placeholder="e.g. Shenzhen Factory Limited">
+                        <input type="text" name="name" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required placeholder="Shenzhen Factory Ltd">
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Contact Representative</label>
-                            <input type="text" name="contact" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" placeholder="e.g. Mr. Wang">
+                            <input type="text" name="contact" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Phone</label>
-                            <input type="text" name="phone" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" placeholder="e.g. +86 139 0000 0000">
+                            <input type="text" name="phone" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" placeholder="+86...">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Email Address</label>
-                            <input type="email" name="email" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" placeholder="factory@watchsupply.com">
+                            <input type="email" name="email" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Country Location</label>
-                            <input type="text" name="country" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" placeholder="e.g. China">
+                            <input type="text" name="country" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
                         </div>
                     </div>`;
             }
