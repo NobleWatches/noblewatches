@@ -345,7 +345,6 @@
         async function loadData() {
             if (currentRole === 'owner') currentShop = document.getElementById('owner-shop-filter').value;
 
-            // FIXED: We fetch all master rows without query constraints so nothing gets hidden silently
             const [invRes, salesRes, custRes, suppRes] = await Promise.all([
                 _supabase.from('inventory').select('*').order('brand', { ascending: true }),
                 _supabase.from('sales').select('*').order('id', { ascending: false }),
@@ -353,13 +352,11 @@
                 _supabase.from('suppliers').select('*').order('name', { ascending: true })
             ]);
 
-            // Save raw data sets globally
             const rawInventory = invRes.data || [];
             const rawSales = salesRes.data || [];
             const rawCustomers = custRes.data || [];
             globalSuppliers = suppRes.data || [];
 
-            // Apply smart filtering programmatically inside code memory, protecting non-shop entries
             if (currentShop === 'all') {
                 globalInventory = rawInventory;
                 globalSales = rawSales;
@@ -390,8 +387,18 @@
             document.getElementById('stat-receivables').textContent = totalReceivables.toLocaleString('en-US', {maximumFractionDigits: 3}) + " KD";
         }
 
+        // FIXED: ADDED COMPREHENSIVE SAFESTART TO GUARD AGAINST MISSING ELEMENTS
         function filterAllTables() {
-            const invQuery = document.getElementById('search-inventory').value.toLowerCase().trim();
+            const invInput = document.getElementById('search-inventory');
+            const salesInput = document.getElementById('search-sales');
+            const custInput = document.getElementById('search-customers');
+            const suppInput = document.getElementById('search-suppliers');
+
+            const invQuery = invInput ? invInput.value.toLowerCase().trim() : '';
+            const salesQuery = salesInput ? salesInput.value.toLowerCase().trim() : '';
+            const custQuery = custInput ? custInput.value.toLowerCase().trim() : '';
+            const suppQuery = suppInput ? suppInput.value.toLowerCase().trim() : '';
+
             const filteredInventory = globalInventory.filter(item => {
                 if(!invQuery) return true;
                 const sName = (shopNames[item.shop] || '').toLowerCase();
@@ -402,7 +409,6 @@
             });
             renderInventoryTable(filteredInventory);
 
-            const salesQuery = document.getElementById('search-sales').value.toLowerCase().trim();
             const filteredSales = globalSales.filter(sale => {
                 if(!salesQuery) return true;
                 const sDate = (sale.date || '').toLowerCase();
@@ -413,7 +419,6 @@
             });
             renderSalesTable(filteredSales);
 
-            const custQuery = document.getElementById('search-customers').value.toLowerCase().trim();
             const filteredCustomers = globalCustomers.filter(cust => {
                 if(!custQuery) return true;
                 const cName = (cust.name || '').toLowerCase();
@@ -423,8 +428,6 @@
             });
             renderCustomersTable(filteredCustomers);
             
-            const suppSearchInput = document.getElementById('search-suppliers');
-            const suppQuery = suppSearchInput ? suppSearchInput.value.toLowerCase().trim() : '';
             const filteredSuppliers = globalSuppliers.filter(sup => {
                 if(!suppQuery) return true;
                 const nameStr = (sup.name || '').toLowerCase();
@@ -436,7 +439,7 @@
         }
 
         function renderInventoryTable(dataList) {
-            const tbody = document.getElementById('table-inventory'); tbody.innerHTML = '';
+            const tbody = document.getElementById('table-inventory'); if (!tbody) return; tbody.innerHTML = '';
             const isOwner = (currentRole === 'owner');
 
             if(dataList.length === 0) {
@@ -462,7 +465,7 @@
         }
 
         function renderSalesTable(dataList) {
-            const tbody = document.getElementById('table-sales'); tbody.innerHTML = '';
+            const tbody = document.getElementById('table-sales'); if (!tbody) return; tbody.innerHTML = '';
             const isOwner = (currentRole === 'owner');
 
             if(dataList.length === 0) {
@@ -497,7 +500,7 @@
         }
 
         function renderCustomersTable(dataList) {
-            const tbody = document.getElementById('table-customers'); tbody.innerHTML = '';
+            const tbody = document.getElementById('table-customers'); if (!tbody) return; tbody.innerHTML = '';
 
             if(dataList.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500 italic">No matching client folders found.</td></tr>`;
@@ -521,9 +524,7 @@
         }
 
         function renderSuppliersTable(dataList) {
-            const tbody = document.getElementById('table-suppliers'); 
-            if (!tbody) return; 
-            tbody.innerHTML = '';
+            const tbody = document.getElementById('table-suppliers'); if (!tbody) return; tbody.innerHTML = '';
             
             if(!dataList || dataList.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500 italic">No registered supply vendors found. Click add new above.</td></tr>`; 
@@ -892,6 +893,7 @@
             XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(excelStockRows), "Current Stock Inventory");
             XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(excelSalesRows), "Sales Invoices History");
             XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(excelCustomerRows), "Customers Credit Ledger");
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(excelSupplierRows), "Suppliers Directory");
             XLSX.writeFile(workbook, `Al_Wadi_Watches_Master_Backup_${new Date().toISOString().slice(0, 10)}.xlsx`);
         }
 
