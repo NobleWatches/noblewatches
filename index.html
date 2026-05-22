@@ -4,19 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Al Wadi Watches Management System</title>
-    <!-- Tailwind CSS for sleek UI -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- SheetJS Library for Direct Excel Exports -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Choices.js CSS for Searchable Dropdowns -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/styles/choices.min.css"/>
-    <!-- Choices.js JS Script -->
     <script src="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/scripts/choices.min.js"></script>
     <style>
         .modal-backdrop { background-color: rgba(0, 0, 0, 0.85); }
-        /* Custom styling override to make choices dropdown fit dark theme perfectly */
         .choices__inner { background-color: #1f2937 !important; border: 1px solid #374151 !important; color: #fff !important; border-radius: 4px !important; }
         .choices__list--dropdown { background-color: #111827 !important; border: 1px solid #374151 !important; color: #fff !important; }
         .choices__list--dropdown .choices__item--selectable.is-highlighted { background-color: #ca8a04 !important; color: #fff !important; }
@@ -30,7 +24,6 @@
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen font-sans">
 
-    <!-- LOGIN SCREEN -->
     <div id="login-screen" class="flex items-center justify-center min-h-screen px-4">
         <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-700">
             <h1 class="text-2xl font-bold text-center mb-2 text-yellow-500">Al Wadi Watches</h1>
@@ -53,9 +46,7 @@
         </div>
     </div>
 
-    <!-- MAIN APP SCREEN -->
     <div id="app-screen" class="hidden flex flex-col min-h-screen">
-        <!-- TOPBAR -->
         <header class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex flex-wrap justify-between items-center gap-4">
             <div class="flex items-center gap-3">
                 <h2 class="text-xl font-bold text-yellow-500">Al Wadi Watches</h2>
@@ -81,7 +72,6 @@
             </div>
         </header>
 
-        <!-- NAVIGATION TABS -->
         <nav class="bg-gray-800 px-6 border-b border-gray-700 flex gap-2 overflow-x-auto">
             <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-4 py-3 font-medium text-sm border-b-2 border-yellow-500 text-yellow-500 focus:outline-none whitespace-nowrap cursor-pointer">Dashboard</button>
             <button onclick="switchTab('inventory')" id="tab-inventory" class="px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-400 hover:text-white focus:outline-none whitespace-nowrap cursor-pointer">Inventory Stock</button>
@@ -90,10 +80,8 @@
             <button onclick="switchTab('suppliers')" id="tab-suppliers" class="hidden px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-400 hover:text-white focus:outline-none whitespace-nowrap cursor-pointer">Suppliers Ledger</button>
         </nav>
 
-        <!-- MAIN VIEW AREA -->
         <main class="flex-1 p-6 max-w-7xl w-full mx-auto">
             
-            <!-- DASHBOARD VIEW -->
             <section id="view-dashboard" class="space-y-6">
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="bg-gray-800 p-5 rounded-xl border border-gray-700">
@@ -115,11 +103,10 @@
                 </div>
                 <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
                     <h3 class="text-lg font-bold mb-4 text-gray-200">System Information</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed">Welcome to your high-volume trading infrastructure. The system now features a dedicated real-time filter indexer for lookups inside invoicing select nodes.</p>
+                    <p class="text-gray-400 text-sm leading-relaxed">Welcome to your high-volume trading infrastructure. Tables feature unified global text filter parameters for rapid, unencumbered device parsing layouts.</p>
                 </div>
             </section>
 
-            <!-- INVENTORY VIEW -->
             <section id="view-inventory" class="hidden space-y-4">
                 <div class="flex flex-wrap gap-3 justify-between items-center">
                     <div class="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded px-3 py-2 w-full max-w-md">
@@ -149,7 +136,6 @@
                 </div>
             </section>
 
-            <!-- SALES VIEW -->
             <section id="view-sales" class="hidden space-y-4">
                 <div class="flex flex-wrap gap-3 justify-between items-center">
                     <div class="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded px-3 py-2 w-full max-w-md">
@@ -179,7 +165,6 @@
                 </div>
             </section>
 
-            <!-- CUSTOMERS VIEW -->
             <section id="view-customers" class="hidden space-y-4">
                 <div class="flex flex-wrap gap-3 justify-between items-center">
                     <div class="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded px-3 py-2 w-full max-w-md">
@@ -205,9 +190,12 @@
                 </div>
             </section>
 
-            <!-- SUPPLIERS VIEW -->
             <section id="view-suppliers" class="hidden space-y-4">
-                <div class="flex justify-end">
+                <div class="flex flex-wrap gap-3 justify-between items-center">
+                    <div class="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded px-3 py-2 w-full max-w-md">
+                        <span>🔍</span>
+                        <input type="text" id="search-suppliers" oninput="filterAllTables()" class="bg-transparent text-sm w-full focus:outline-none text-white font-medium" placeholder="Search suppliers by Factory Company Name or Origin...">
+                    </div>
                     <button onclick="openModal('suppliers')" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-4 py-2 rounded text-sm transition cursor-pointer">+ Add New Supplier</button>
                 </div>
                 <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-x-auto shadow-xl">
@@ -230,7 +218,6 @@
         </main>
     </div>
 
-    <!-- DATA INPUT MODALS -->
     <div id="modal-container" class="fixed inset-0 z-50 modal-backdrop hidden flex items-center justify-center p-4">
         <div class="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden">
             <div class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex justify-between items-center">
@@ -249,7 +236,6 @@
         </div>
     </div>
 
-    <!-- HIDDEN PRINTER OVERLAY -->
     <div id="invoice-print-zone" class="hidden bg-white text-black p-8 font-serif leading-relaxed"></div>
 
     <script>
@@ -264,7 +250,7 @@
         let globalSales = [];
         let globalCustomers = [];
         let globalSuppliers = [];
-        let choicesInstance = null; // Global instance tracker reference 
+        let choicesInstance = null; 
 
         const shopNames = { "1": "Shop 1", "2": "Shop 2", "3": "Shop 3", "4": "Shop 4" };
         const PASSWORDS = { owner: "owner123", "1": "shop1pass", "2": "shop2pass", "3": "shop3pass", "4": "shop4pass" };
@@ -427,6 +413,18 @@
                 return cName.includes(custQuery) || cPhone.includes(custQuery) || cType.includes(custQuery);
             });
             renderCustomersTable(filteredCustomers);
+            
+            // Unified Search Bar Support logic for Suppliers ledger sheet
+            const suppSearchInput = document.getElementById('search-suppliers');
+            const suppQuery = suppSearchInput ? suppSearchInput.value.toLowerCase().trim() : '';
+            const filteredSuppliers = globalSuppliers.filter(sup => {
+                if(!suppQuery) return true;
+                const nameStr = (sup.name || '').toLowerCase();
+                const repStr = (sup.contact || '').toLowerCase();
+                const originStr = (sup.country || '').toLowerCase();
+                return nameStr.includes(suppQuery) || repStr.includes(suppQuery) || originStr.includes(suppQuery);
+            });
+            renderSuppliersTable(filteredSuppliers);
         }
 
         function renderInventoryTable(dataList) {
@@ -514,15 +512,19 @@
             });
         }
 
-        function renderSuppliersTable() {
-            const tbody = document.getElementById('table-suppliers'); tbody.innerHTML = '';
-            if(globalSuppliers.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500 italic">No suppliers listed.</td></tr>`; return;
+        function renderSuppliersTable(dataList) {
+            const tbody = document.getElementById('table-suppliers'); 
+            if (!tbody) return; 
+            tbody.innerHTML = '';
+            
+            if(!dataList || dataList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500 italic">No registered supply vendors found. Click add new above.</td></tr>`; 
+                return;
             }
-            globalSuppliers.forEach(sup => {
-                const tr = document.createElement('tr'); tr.className = "hover:bg-gray-700/50 transition";
+            dataList.forEach(sup => {
+                const tr = document.createElement('tr'); tr.className = "hover:bg-gray-700/50 transition border-b border-gray-800";
                 tr.innerHTML = `
-                    <td class="p-4 font-bold text-white">${sup.name}</td>
+                    <td class="p-4 font-bold text-white">${sup.name || '—'}</td>
                     <td class="p-4 font-medium text-gray-300">${sup.contact || '—'}</td>
                     <td class="p-4 font-mono text-xs text-gray-400">${sup.phone || '—'}</td>
                     <td class="p-4 text-xs text-gray-400 uppercase tracking-wider">${sup.country || '—'}</td>
@@ -611,7 +613,6 @@
             } else if (target === 'sales') {
                 title.textContent = "Record Sale Invoice Transaction";
                 
-                // Fetch watches matching current branch scope or all for owner
                 let currentSalesRoleShop = (currentRole === 'owner') ? document.getElementById('owner-shop-filter').value : currentRole;
                 let activeAvailableWatches = globalInventory.filter(w => w.qty > 0);
                 if (currentSalesRoleShop !== 'all') {
@@ -678,7 +679,6 @@
                         </div>
                     </div>`;
                 
-                // Trigger searchable combobox initialization
                 setTimeout(() => {
                     const selectElement = document.getElementById('sale-watch-select');
                     const priceInp = document.getElementById('sale-unit-price');
@@ -703,7 +703,6 @@
                         }
                     }
 
-                    // Attach listener hook bindings inside choices structure template layer
                     selectElement.addEventListener('change', runFormAutofillFields);
                     qtyInp.addEventListener('input', runFormAutofillFields);
                 }, 100);
@@ -738,26 +737,26 @@
                 fields.innerHTML = `
                     <div>
                         <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Supplier/Company Name</label>
-                        <input type="text" name="name" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required placeholder="e.g. Swiss Global Trade GmbH">
+                        <input type="text" name="name" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required placeholder="e.g. Shenzhen Factory Limited">
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Contact Representative</label>
-                            <input type="text" name="contact" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" placeholder="e.g. Jean Dupont">
+                            <input type="text" name="contact" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" placeholder="e.g. Mr. Wang">
                         </div>
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Phone</label>
-                            <input type="text" name="phone" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" placeholder="+41 44 123 4567">
+                            <input type="text" name="phone" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" placeholder="e.g. +86 139 0000 0000">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Email Address</label>
-                            <input type="email" name="email" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" placeholder="info@swisswatchsupply.com">
+                            <input type="email" name="email" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" placeholder="factory@watchsupply.com">
                         </div>
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Country Location</label>
-                            <input type="text" name="country" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" placeholder="e.g. Switzerland">
+                            <input type="text" name="country" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" placeholder="e.g. China">
                         </div>
                     </div>`;
             }
