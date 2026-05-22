@@ -9,80 +9,928 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/styles/choices.min.css"/>
     <script src="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/scripts/choices.min.js"></script>
+    <style>
+        .modal-backdrop { background-color: rgba(0, 0, 0, 0.85); }
+        .choices__inner { background-color: #1f2937 !important; border: 1px solid #374151 !important; color: #fff !important; border-radius: 4px !important; }
+        .choices__list--dropdown { background-color: #111827 !important; border: 1px solid #374151 !important; color: #fff !important; }
+        .choices__list--dropdown .choices__item--selectable.is-highlighted { background-color: #ca8a04 !important; color: #fff !important; }
+        .choices__placeholder { color: #9ca3af !important; opacity: 1; }
+        @media print {
+            body * { visibility: hidden; }
+            #invoice-print-zone, #invoice-print-zone * { visibility: visible; }
+            #invoice-print-zone { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+    </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen font-sans">
 
     <div id="login-screen" class="flex items-center justify-center min-h-screen px-4">
         <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-700">
-            <h1 class="text-2xl font-bold text-center mb-6 text-yellow-500">Al Wadi Watches</h1>
-            <select id="login-role" class="w-full bg-gray-700 border border-gray-600 rounded p-2.5 mb-4 text-white">
-                <option value="owner">Owner</option>
+            <h1 class="text-2xl font-bold text-center mb-2 text-yellow-500">Al Wadi Watches</h1>
+            <p class="text-gray-400 text-center text-sm mb-6">Kuwait — Establishment 1990s</p>
+            
+            <label class="block text-sm font-medium mb-2">Select Role</label>
+            <select id="login-role" class="w-full bg-gray-700 border border-gray-600 rounded p-2.5 mb-4 text-white focus:outline-none focus:border-yellow-500">
+                <option value="owner">Owner (Master Access)</option>
                 <option value="1">Shop 1</option>
+                <option value="2">Shop 2</option>
+                <option value="3">Shop 3</option>
+                <option value="4">Shop 4</option>
             </select>
-            <input type="password" id="login-pass" class="w-full bg-gray-700 border border-gray-600 rounded p-2.5 mb-6 text-white" placeholder="Password">
-            <button onclick="handleLogin()" class="w-full bg-yellow-600 p-3 rounded font-bold">Login</button>
+
+            <label class="block text-sm font-medium mb-2">Password</label>
+            <input type="password" id="login-pass" class="w-full bg-gray-700 border border-gray-600 rounded p-2.5 mb-6 text-white focus:outline-none focus:border-yellow-500" placeholder="••••••••">
+            
+            <button onclick="handleLogin()" class="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold p-3 rounded transition duration-200 cursor-pointer">Login</button>
+            <p id="login-error" class="text-red-500 text-sm mt-3 text-center hidden">Invalid Password</p>
         </div>
     </div>
 
     <div id="app-screen" class="hidden flex flex-col min-h-screen">
-        <nav class="bg-gray-800 border-b border-gray-700 flex">
-            <button onclick="switchTab('inventory')" class="px-6 py-4 font-bold text-yellow-500">Inventory</button>
-            <button onclick="switchTab('sales')" class="px-6 py-4 font-bold text-gray-400">Sales</button>
-            <button onclick="switchTab('customers')" class="px-6 py-4 font-bold text-gray-400">Customers</button>
-            <button onclick="switchTab('suppliers')" class="px-6 py-4 font-bold text-gray-400">Suppliers</button>
+        <header class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <h2 class="text-xl font-bold text-yellow-500">Al Wadi Watches</h2>
+                <div class="flex items-center gap-1.5 bg-gray-900 px-2.5 py-1 rounded-full text-xs border border-gray-700">
+                    <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+                    <span id="status-text" class="text-gray-400 font-medium">Connecting</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div id="owner-shop-filter-container" class="hidden">
+                    <select id="owner-shop-filter" onchange="loadData()" class="bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm text-white focus:outline-none">
+                        <option value="all">All Shops Combined</option>
+                        <option value="1">Shop 1</option>
+                        <option value="2">Shop 2</option>
+                        <option value="3">Shop 3</option>
+                        <option value="4">Shop 4</option>
+                    </select>
+                </div>
+                <span id="user-display" class="text-sm bg-gray-700 px-3 py-1.5 rounded border border-gray-600 text-gray-200"></span>
+                <button id="backup-btn" onclick="downloadExcelBackup()" class="hidden bg-emerald-700 hover:bg-emerald-600 px-3 py-1.5 text-sm font-semibold rounded transition cursor-pointer flex items-center gap-1.5 text-white">📊 Export to Excel</button>
+                <button onclick="handleLogout()" class="bg-red-700 hover:bg-red-600 px-3 py-1.5 text-sm font-semibold rounded transition cursor-pointer">Logout</button>
+            </div>
+        </header>
+
+        <nav class="bg-gray-800 px-6 border-b border-gray-700 flex gap-2 overflow-x-auto">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-4 py-3 font-medium text-sm border-b-2 border-yellow-500 text-yellow-500 focus:outline-none whitespace-nowrap cursor-pointer">Dashboard</button>
+            <button onclick="switchTab('inventory')" id="tab-inventory" class="px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-400 hover:text-white focus:outline-none whitespace-nowrap cursor-pointer">Inventory Stock</button>
+            <button onclick="switchTab('sales')" id="tab-sales" class="px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-400 hover:text-white focus:outline-none whitespace-nowrap cursor-pointer">Sales Logs</button>
+            <button onclick="switchTab('customers')" id="tab-customers" class="px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-400 hover:text-white focus:outline-none whitespace-nowrap cursor-pointer">Customers Credit</button>
+            <button onclick="switchTab('suppliers')" id="tab-suppliers" class="hidden px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-400 hover:text-white focus:outline-none whitespace-nowrap cursor-pointer">Suppliers Ledger</button>
         </nav>
 
-        <main class="p-6">
-            <div id="view-inventory" class="tab-view"><table class="w-full bg-gray-800 rounded-lg"><tbody id="table-inventory"></tbody></table></div>
-            <div id="view-sales" class="tab-view hidden"><table class="w-full bg-gray-800 rounded-lg"><tbody id="table-sales"></tbody></table></div>
-            <div id="view-customers" class="tab-view hidden"><table class="w-full bg-gray-800 rounded-lg"><tbody id="table-customers"></tbody></table></div>
-            <div id="view-suppliers" class="tab-view hidden"><table class="w-full bg-gray-800 rounded-lg"><tbody id="table-suppliers"></tbody></table></div>
+        <main class="flex-1 p-6 max-w-7xl w-full mx-auto">
+            
+            <section id="view-dashboard" class="space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-gray-800 p-5 rounded-xl border border-gray-700">
+                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Total Active Stock</p>
+                        <h3 id="stat-stock-count" class="text-3xl font-bold mt-2 text-white">0 pcs</h3>
+                    </div>
+                    <div id="card-stock-value" class="bg-gray-800 p-5 rounded-xl border border-gray-700 hidden">
+                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Total Stock Investment (KWD)</p>
+                        <h3 id="stat-stock-value" class="text-3xl font-bold mt-2 text-emerald-500">0 KD</h3>
+                    </div>
+                    <div id="card-profit" class="bg-gray-800 p-5 rounded-xl border border-gray-700 hidden">
+                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Net Profit Made (KWD)</p>
+                        <h3 id="stat-profit" class="text-3xl font-bold mt-2 text-yellow-500">0 KD</h3>
+                    </div>
+                    <div class="bg-gray-800 p-5 rounded-xl border border-gray-700">
+                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Total Customer Debt</p>
+                        <h3 id="stat-receivables" class="text-3xl font-bold mt-2 text-red-400">0 KD</h3>
+                    </div>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                    <h3 class="text-lg font-bold mb-4 text-gray-200">System Information</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Welcome to your high-volume trading infrastructure. Tables feature unified global text filter parameters for rapid, unencumbered device parsing layouts.</p>
+                </div>
+            </section>
+
+            <section id="view-inventory" class="hidden space-y-4">
+                <div class="flex flex-wrap gap-3 justify-between items-center">
+                    <div class="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded px-3 py-2 w-full max-w-md">
+                        <span>🔍</span>
+                        <input type="text" id="search-inventory" oninput="filterAllTables()" class="bg-transparent text-sm w-full focus:outline-none text-white font-medium" placeholder="Search stock by Shop, Brand, Model, or Supplier...">
+                    </div>
+                    <button onclick="openModal('inventory')" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-4 py-2 rounded text-sm transition cursor-pointer">+ Add New Stock Item</button>
+                </div>
+                <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-x-auto shadow-xl">
+                    <table class="w-full text-left border-collapse min-w-[900px]">
+                        <thead>
+                            <tr class="bg-gray-700 text-gray-300 text-xs uppercase border-b border-gray-600">
+                                <th class="p-4 w-36">Shop</th>
+                                <th class="p-4">Brand</th>
+                                <th class="p-4">Model Details</th>
+                                <th class="p-4 w-44">Supplier</th>
+                                <th class="p-4 text-center w-16">Qty Available</th>
+                                <th id="th-buy-price-rmb" class="p-4 hidden">Purchase (RMB)</th>
+                                <th id="th-buy-price-kwd" class="p-4 hidden">Landed Cost (KWD)</th>
+                                <th class="p-4">Retail Price</th>
+                                <th class="p-4">Dealer Price</th>
+                                <th id="th-inv-action" class="p-4 text-right hidden">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-inventory" class="text-sm divide-y divide-gray-700 text-gray-200"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="view-sales" class="hidden space-y-4">
+                <div class="flex flex-wrap gap-3 justify-between items-center">
+                    <div class="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded px-3 py-2 w-full max-w-md">
+                        <span>🔍</span>
+                        <input type="text" id="search-sales" oninput="filterAllTables()" class="bg-transparent text-sm w-full focus:outline-none text-white font-medium" placeholder="Search sales by Date, Shop, Watch, or Customer name...">
+                    </div>
+                    <button onclick="openModal('sales')" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-4 py-2 rounded text-sm transition cursor-pointer">+ Record New Sale Invoice</button>
+                </div>
+                <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-x-auto shadow-xl">
+                    <table class="w-full text-left border-collapse min-w-[950px]">
+                        <thead>
+                            <tr class="bg-gray-700 text-gray-300 text-xs uppercase border-b border-gray-600">
+                                <th class="p-4 w-32">Date</th>
+                                <th class="p-4 w-36">Shop</th>
+                                <th class="p-4">Watch Description</th>
+                                <th class="p-4 text-center w-16">Qty</th>
+                                <th class="p-4">Customer</th>
+                                <th class="p-4">Total Price</th>
+                                <th class="p-4">Paid Amount</th>
+                                <th class="p-4">Balance Status</th>
+                                <th id="th-sales-profit" class="p-4 hidden">Profit</th>
+                                <th class="p-4 text-right w-36">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-sales" class="text-sm divide-y divide-gray-700 text-gray-200"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="view-customers" class="hidden space-y-4">
+                <div class="flex flex-wrap gap-3 justify-between items-center">
+                    <div class="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded px-3 py-2 w-full max-w-md">
+                        <span>🔍</span>
+                        <input type="text" id="search-customers" oninput="filterAllTables()" class="bg-transparent text-sm w-full focus:outline-none text-white font-medium" placeholder="Search clients by Name, Phone, or Classification...">
+                    </div>
+                    <button onclick="openModal('customers')" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-4 py-2 rounded text-sm transition cursor-pointer">+ Add Customer File</button>
+                </div>
+                <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-x-auto shadow-xl">
+                    <table class="w-full text-left border-collapse min-w-[700px]">
+                        <thead>
+                            <tr class="bg-gray-700 text-gray-300 text-xs uppercase border-b border-gray-600">
+                                <th class="p-4">Customer Name</th>
+                                <th class="p-4">Phone Number</th>
+                                <th class="p-4">Classification</th>
+                                <th class="p-4">Total Purchased</th>
+                                <th class="p-4 text-red-400">Total Credit Due</th>
+                                <th class="p-4 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-customers" class="text-sm divide-y divide-gray-700 text-gray-200"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="view-suppliers" class="hidden space-y-4">
+                <div class="flex flex-wrap gap-3 justify-between items-center">
+                    <div class="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded px-3 py-2 w-full max-w-md">
+                        <span>🔍</span>
+                        <input type="text" id="search-suppliers" oninput="filterAllTables()" class="bg-transparent text-sm w-full focus:outline-none text-white font-medium" placeholder="Search suppliers by Factory Company Name or Origin...">
+                    </div>
+                    <button onclick="openModal('suppliers')" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-4 py-2 rounded text-sm transition cursor-pointer">+ Add New Supplier</button>
+                </div>
+                <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-x-auto shadow-xl">
+                    <table class="w-full text-left border-collapse min-w-[800px]">
+                        <thead>
+                            <tr class="bg-gray-700 text-gray-300 text-xs uppercase border-b border-gray-600">
+                                <th class="p-4">Company Name</th>
+                                <th class="p-4">Contact Representative</th>
+                                <th class="p-4">Phone</th>
+                                <th class="p-4">Country Origin</th>
+                                <th class="p-4 text-amber-400">Our Payable Debt</th>
+                                <th class="p-4 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-suppliers" class="text-sm divide-y divide-gray-700 text-gray-200"></tbody>
+                    </table>
+                </div>
+            </section>
+
         </main>
     </div>
 
+    <div id="modal-container" class="fixed inset-0 z-50 modal-backdrop hidden flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+                <h3 id="modal-title" class="text-lg font-bold text-yellow-500">Data Form Entry</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white text-xl font-bold focus:outline-none cursor-pointer">&times;</button>
+            </div>
+            <div class="p-6 max-h-[75vh] overflow-y-auto">
+                <form id="data-form" onsubmit="handleFormSubmit(event)" class="space-y-4 text-gray-300">
+                    <div id="form-fields" class="space-y-4"></div>
+                    <div class="flex justify-end gap-3 pt-4 border-t border-gray-800">
+                        <button type="button" onclick="closeModal()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-4 py-2 rounded text-sm transition cursor-pointer">Cancel</button>
+                        <button type="submit" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-5 py-2 rounded text-sm transition cursor-pointer">Save Database Entry</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="invoice-print-zone" class="hidden bg-white text-black p-8 font-serif leading-relaxed"></div>
+
     <script>
-        // Your private credentials are now embedded
         const SUPABASE_URL = "https://sauwqklxwmzhkkidvony.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhdXdxa2x4d216aGtraWR2b255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Mzk2NDQsImV4cCI6MjA5NTAxNTY0NH0.Rcgv05XPO-C4k_vt3nbta81-0zH4c-ReG_pCmag7yn0";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        function switchTab(id) {
-            document.querySelectorAll('.tab-view').forEach(v => v.classList.add('hidden'));
-            document.getElementById('view-' + id).classList.remove('hidden');
+        let currentRole = null; 
+        let currentShop = null; 
+        let activeTab = 'dashboard';
+        let globalInventory = [];
+        let globalSales = [];
+        let globalCustomers = [];
+        let globalSuppliers = [];
+        let choicesInstance = null; 
+
+        const shopNames = { "1": "Shop 1", "2": "Shop 2", "3": "Shop 3", "4": "Shop 4" };
+        const PASSWORDS = { owner: "owner123", "1": "shop1pass", "2": "shop2pass", "3": "shop3pass", "4": "shop4pass" };
+
+        function handleLogin() {
+            const role = document.getElementById('login-role').value;
+            const pass = document.getElementById('login-pass').value;
+            const err = document.getElementById('login-error');
+
+            if (PASSWORDS[role] === pass) {
+                err.classList.add('hidden');
+                currentRole = role;
+                currentShop = (role === 'owner') ? 'all' : role;
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-screen').classList.remove('hidden');
+                setupRolePermissions();
+                initRealtimeSync();
+                loadData();
+            } else {
+                err.classList.remove('hidden');
+            }
+        }
+
+        function handleLogout() {
+            currentRole = null; currentShop = null;
+            document.getElementById('app-screen').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('login-pass').value = '';
+            _supabase.removeAllChannels();
+        }
+
+        function setupRolePermissions() {
+            const isOwner = (currentRole === 'owner');
+            document.getElementById('owner-shop-filter-container').style.display = isOwner ? 'block' : 'none';
+            document.getElementById('backup-btn').style.display = isOwner ? 'block' : 'none';
+            document.getElementById('tab-suppliers').style.display = isOwner ? 'block' : 'none';
+            document.getElementById('card-stock-value').style.display = isOwner ? 'block' : 'none';
+            document.getElementById('card-profit').style.display = isOwner ? 'block' : 'none';
+            document.getElementById('th-buy-price-rmb').style.display = isOwner ? 'table-cell' : 'none';
+            document.getElementById('th-buy-price-kwd').style.display = isOwner ? 'table-cell' : 'none';
+            document.getElementById('th-sales-profit').style.display = isOwner ? 'table-cell' : 'none';
+            document.getElementById('th-inv-action').style.display = isOwner ? 'table-cell' : 'none';
+            document.getElementById('user-display').textContent = isOwner ? "👑 Admin: Owner Master View" : `🏬 Staff: ${shopNames[currentRole]}`;
+            
+            if (!isOwner) {
+                document.getElementById('owner-shop-filter').value = currentRole;
+                currentShop = currentRole;
+            }
+            switchTab('dashboard');
+        }
+
+        function switchTab(tabId) {
+            activeTab = tabId;
+            ['dashboard', 'inventory', 'sales', 'customers', 'suppliers'].forEach(t => {
+                const view = document.getElementById(`view-${t}`);
+                const btn = document.getElementById(`tab-${t}`);
+                if(view) view.classList.add('hidden');
+                if(btn) { btn.classList.remove('border-yellow-500', 'text-yellow-500'); btn.classList.add('border-transparent', 'text-gray-400'); }
+            });
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabId}`).classList.add('border-yellow-500', 'text-yellow-500');
+        }
+
+        function initRealtimeSync() {
+            updateStatusIndicator('connecting');
+            _supabase.channel('db-changes')
+                .on('postgres_changes', { event: '*', schema: 'public' }, () => { loadData(); })
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') updateStatusIndicator('online');
+                    else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') updateStatusIndicator('offline');
+                });
+        }
+
+        function updateStatusIndicator(state) {
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            if (state === 'online') {
+                dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+                txt.textContent = "Live Feed Sync Active";
+                txt.className = "text-emerald-400 font-medium";
+            } else if (state === 'offline') {
+                dot.className = "w-2.5 h-2.5 rounded-full bg-red-500";
+                txt.textContent = "Database Disconnected";
+                txt.className = "text-red-400 font-medium";
+            } else {
+                dot.className = "w-2.5 h-2.5 rounded-full bg-orange-500";
+                txt.textContent = "Establishing Feed";
+                txt.className = "text-orange-400 font-medium";
+            }
         }
 
         async function loadData() {
-            const [inv, sal, cus, sup] = await Promise.all([
-                _supabase.from('inventory').select('*'),
-                _supabase.from('sales').select('*'),
-                _supabase.from('customers').select('*'),
-                _supabase.from('suppliers').select('*')
-            ]);
-            
-            renderTable('table-inventory', inv.data || []);
-            renderTable('table-sales', sal.data || []);
-            renderTable('table-customers', cus.data || []);
-            renderTable('table-suppliers', sup.data || []);
+            if (currentRole === 'owner') currentShop = document.getElementById('owner-shop-filter').value;
+
+            let invQuery = _supabase.from('inventory').select('*').order('brand', { ascending: true });
+            let salesQuery = _supabase.from('sales').select('*').order('id', { ascending: false });
+            let custQuery = _supabase.from('customers').select('*').order('name', { ascending: true });
+            let suppQuery = _supabase.from('suppliers').select('*').order('name', { ascending: true });
+
+            if (currentShop !== 'all') {
+                invQuery = invQuery.eq('shop', parseInt(currentShop));
+                salesQuery = salesQuery.eq('shop', parseInt(currentShop));
+                custQuery = custQuery.eq('shop', parseInt(currentShop));
+            }
+
+            const [invRes, salesRes, custRes, suppRes] = await Promise.all([invQuery, salesQuery, custQuery, suppQuery]);
+            globalInventory = invRes.data || [];
+            globalSales = salesRes.data || [];
+            globalCustomers = custRes.data || [];
+            globalSuppliers = suppRes.data || [];
+
+            calculateMetricsSummary();
+            filterAllTables();
         }
 
-        function renderTable(tbodyId, data) {
-            const tbody = document.getElementById(tbodyId);
-            tbody.innerHTML = '';
-            if (data.length === 0) {
-                tbody.innerHTML = `<tr><td class="p-4 text-center">No records found.</td></tr>`;
+        function calculateMetricsSummary() {
+            let totalStockQty = 0; let totalStockVal = 0; let totalProfit = 0; let totalReceivables = 0;
+            globalInventory.forEach(item => {
+                totalStockQty += parseInt(item.qty || 0);
+                totalStockVal += (parseFloat(item.buy_price || 0) * parseInt(item.qty || 0));
+            });
+            globalSales.forEach(sale => { totalProfit += parseFloat(sale.profit || 0); });
+            globalCustomers.forEach(cust => { totalReceivables += parseFloat(cust.credit || 0); });
+
+            document.getElementById('stat-stock-count').textContent = totalStockQty.toLocaleString() + " pcs";
+            document.getElementById('stat-stock-value').textContent = totalStockVal.toLocaleString('en-US', {maximumFractionDigits: 3}) + " KD";
+            document.getElementById('stat-profit').textContent = totalProfit.toLocaleString('en-US', {maximumFractionDigits: 3}) + " KD";
+            document.getElementById('stat-receivables').textContent = totalReceivables.toLocaleString('en-US', {maximumFractionDigits: 3}) + " KD";
+        }
+
+        function filterAllTables() {
+            const invQuery = document.getElementById('search-inventory').value.toLowerCase().trim();
+            const filteredInventory = globalInventory.filter(item => {
+                if(!invQuery) return true;
+                const sName = (shopNames[item.shop] || '').toLowerCase();
+                const bName = (item.brand || '').toLowerCase();
+                const mName = (item.model || '').toLowerCase();
+                const supName = (item.supplier_name || 'Direct Import').toLowerCase();
+                return sName.includes(invQuery) || bName.includes(invQuery) || mName.includes(invQuery) || supName.includes(invQuery);
+            });
+            renderInventoryTable(filteredInventory);
+
+            const salesQuery = document.getElementById('search-sales').value.toLowerCase().trim();
+            const filteredSales = globalSales.filter(sale => {
+                if(!salesQuery) return true;
+                const sDate = (sale.date || '').toLowerCase();
+                const sShop = (shopNames[sale.shop] || '').toLowerCase();
+                const sWatch = `${sale.brand || ''} ${sale.model || ''}`.toLowerCase();
+                const sCust = findCustomerName(sale.customer_id).toLowerCase();
+                return sDate.includes(salesQuery) || sShop.includes(salesQuery) || sWatch.includes(salesQuery) || sCust.includes(salesQuery);
+            });
+            renderSalesTable(filteredSales);
+
+            const custQuery = document.getElementById('search-customers').value.toLowerCase().trim();
+            const filteredCustomers = globalCustomers.filter(cust => {
+                if(!custQuery) return true;
+                const cName = (cust.name || '').toLowerCase();
+                const cPhone = (cust.phone || '').toLowerCase();
+                const cType = (cust.type || '').toLowerCase();
+                return cName.includes(custQuery) || cPhone.includes(custQuery) || cType.includes(custQuery);
+            });
+            renderCustomersTable(filteredCustomers);
+            
+            // Unified Search Bar Support logic for Suppliers ledger sheet
+            const suppSearchInput = document.getElementById('search-suppliers');
+            const suppQuery = suppSearchInput ? suppSearchInput.value.toLowerCase().trim() : '';
+            const filteredSuppliers = globalSuppliers.filter(sup => {
+                if(!suppQuery) return true;
+                const nameStr = (sup.name || '').toLowerCase();
+                const repStr = (sup.contact || '').toLowerCase();
+                const originStr = (sup.country || '').toLowerCase();
+                return nameStr.includes(suppQuery) || repStr.includes(suppQuery) || originStr.includes(suppQuery);
+            });
+            renderSuppliersTable(filteredSuppliers);
+        }
+
+        function renderInventoryTable(dataList) {
+            const tbody = document.getElementById('table-inventory'); tbody.innerHTML = '';
+            const isOwner = (currentRole === 'owner');
+
+            if(dataList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${isOwner ? 10 : 7}" class="p-8 text-center text-gray-500 italic">No matching inventory records found.</td></tr>`;
                 return;
             }
-            data.forEach(item => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = Object.values(item).map(val => `<td class="p-4 border-b border-gray-700">${val}</td>`).join('');
+            dataList.forEach(item => {
+                const tr = document.createElement('tr'); tr.className = "hover:bg-gray-700/50 transition";
+                tr.innerHTML = `
+                    <td class="p-4 font-medium text-gray-400">${shopNames[item.shop] || 'Unknown'}</td>
+                    <td class="p-4 font-bold text-yellow-500 uppercase">${item.brand || '—'}</td>
+                    <td class="p-4 font-medium">${item.model || '—'}</td>
+                    <td class="p-4 text-gray-300 italic">${item.supplier_name || 'Direct Import'}</td>
+                    <td class="p-4 text-center font-bold text-white">${parseInt(item.qty).toLocaleString()}</td>
+                    ${isOwner ? `<td class="p-4 font-semibold text-amber-500">¥${parseFloat(item.rmb_buy_price || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>` : ''}
+                    ${isOwner ? `<td class="p-4 font-semibold text-emerald-400">${parseFloat(item.buy_price).toFixed(3)} KD</td>` : ''}
+                    <td class="p-4 font-semibold text-sky-400">${parseFloat(item.sell_price).toFixed(3)} KD</td>
+                    <td class="p-4 font-semibold text-purple-400">${parseFloat(item.dealer_price || 0).toFixed(3)} KD</td>
+                    ${isOwner ? `<td class="p-4 text-right"><button onclick="confirmDeleteRecord('inventory', ${item.id})" class="text-red-500 hover:text-red-400 text-xs font-bold px-2 py-1 bg-red-950/40 rounded border border-red-900/60 transition cursor-pointer">Delete</button></td>` : ''}
+                `;
                 tbody.appendChild(tr);
             });
         }
 
-        function handleLogin() {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('app-screen').classList.remove('hidden');
-            loadData();
+        function renderSalesTable(dataList) {
+            const tbody = document.getElementById('table-sales'); tbody.innerHTML = '';
+            const isOwner = (currentRole === 'owner');
+
+            if(dataList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${isOwner ? 10 : 9}" class="p-8 text-center text-gray-500 italic">No matching sales receipts logged.</td></tr>`;
+                return;
+            }
+            dataList.forEach(sale => {
+                const total = parseFloat(sale.sell_price || 0) * parseInt(sale.qty || 1);
+                const paid = parseFloat(sale.paid || 0); const diff = total - paid;
+                let debtStatusBadge = diff <= 0 ? 
+                    `<span class="bg-emerald-950 text-emerald-400 border border-emerald-900 px-2 py-0.5 rounded-full text-xs font-semibold">Fully Paid</span>` : 
+                    `<span class="bg-red-950 text-red-400 border border-red-900 px-2 py-0.5 rounded-full text-xs font-semibold">Credit: ${diff.toFixed(3)} KD</span>`;
+
+                const tr = document.createElement('tr'); tr.className = "hover:bg-gray-700/50 transition";
+                tr.innerHTML = `
+                    <td class="p-4 text-xs font-mono text-gray-400">${sale.date || '—'}</td>
+                    <td class="p-4 text-xs text-gray-400">${shopNames[sale.shop] || '—'}</td>
+                    <td class="p-4 font-semibold"><span class="text-yellow-500 uppercase font-bold mr-1">${sale.brand}</span> ${sale.model}</td>
+                    <td class="p-4 text-center font-bold">${sale.qty}</td>
+                    <td class="p-4 text-gray-300 font-medium">${findCustomerName(sale.customer_id)}</td>
+                    <td class="p-4 font-bold text-white">${total.toFixed(3)} KD</td>
+                    <td class="p-4 font-semibold text-emerald-400">${paid.toFixed(3)} KD</td>
+                    <td class="p-4">${debtStatusBadge}</td>
+                    ${isOwner ? `<td class="p-4 font-bold text-yellow-500">${parseFloat(sale.profit || 0).toFixed(3)} KD</td>` : ''}
+                    <td class="p-4 text-right flex items-center justify-end gap-2">
+                        <button onclick="printInvoice(${sale.id})" class="text-xs bg-gray-700 hover:bg-gray-600 font-bold px-2 py-1 rounded text-white transition border border-gray-600 cursor-pointer">🖨️ Print</button>
+                        ${isOwner ? `<button onclick="confirmDeleteRecord('sales', ${sale.id})" class="text-red-500 hover:text-red-400 text-xs font-bold px-2 py-1 bg-red-950/40 rounded border border-red-900/60 transition cursor-pointer">Delete</button>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderCustomersTable(dataList) {
+            const tbody = document.getElementById('table-customers'); tbody.innerHTML = '';
+
+            if(dataList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500 italic">No matching client folders found.</td></tr>`;
+                return;
+            }
+            dataList.forEach(cust => {
+                const creditVal = parseFloat(cust.credit || 0);
+                const tr = document.createElement('tr'); tr.className = "hover:bg-gray-700/50 transition";
+                tr.innerHTML = `
+                    <td class="p-4 font-bold text-white">${cust.name}</td>
+                    <td class="p-4 font-mono text-xs text-gray-400">${cust.phone || '—'}</td>
+                    <td class="p-4"><span class="px-2 py-0.5 rounded text-xs font-semibold ${cust.type === 'Dealer' ? 'bg-purple-950 text-purple-400 border border-purple-900' : 'bg-blue-950 text-blue-400 border border-blue-900'}">${cust.type || 'Retail'}</span></td>
+                    <td class="p-4 font-medium text-gray-300">${parseInt(cust.paid || 0).toLocaleString()} Purchases</td>
+                    <td class="p-4 font-bold text-md ${creditVal > 0 ? 'text-red-400' : 'text-gray-500'}">${creditVal.toFixed(3)} KD</td>
+                    <td class="p-4 text-right">
+                        <button onclick="openPaymentCollectionModal(${cust.id})" class="text-xs bg-emerald-700 hover:bg-emerald-600 font-bold px-2.5 py-1 rounded text-white transition cursor-pointer">💵 Receive Money</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderSuppliersTable(dataList) {
+            const tbody = document.getElementById('table-suppliers'); 
+            if (!tbody) return; 
+            tbody.innerHTML = '';
+            
+            if(!dataList || dataList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500 italic">No registered supply vendors found. Click add new above.</td></tr>`; 
+                return;
+            }
+            dataList.forEach(sup => {
+                const tr = document.createElement('tr'); tr.className = "hover:bg-gray-700/50 transition border-b border-gray-800";
+                tr.innerHTML = `
+                    <td class="p-4 font-bold text-white">${sup.name || '—'}</td>
+                    <td class="p-4 font-medium text-gray-300">${sup.contact || '—'}</td>
+                    <td class="p-4 font-mono text-xs text-gray-400">${sup.phone || '—'}</td>
+                    <td class="p-4 text-xs text-gray-400 uppercase tracking-wider">${sup.country || '—'}</td>
+                    <td class="p-4 font-bold text-amber-400">${parseFloat(sup.outstanding || 0).toFixed(3)} KD</td>
+                    <td class="p-4 text-right"><button onclick="confirmDeleteRecord('suppliers', ${sup.id})" class="text-red-500 hover:text-red-400 text-xs font-bold px-2 py-1 bg-red-950/40 rounded border border-red-900/60 transition cursor-pointer">Delete</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function findCustomerName(id) {
+            const found = globalCustomers.find(c => c.id == id);
+            return found ? found.name : 'Walking Retail Customer';
+        }
+
+        let currentModalTarget = '';
+        function openModal(target) {
+            currentModalTarget = target; const fields = document.getElementById('form-fields');
+            const title = document.getElementById('modal-title'); fields.innerHTML = '';
+            const isOwner = (currentRole === 'owner');
+            
+            const targetShopSelector = isOwner ? `
+                <div>
+                    <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Target Assignment Shop</label>
+                    <select name="shop" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" required>
+                        <option value="1">Shop 1</option>
+                        <option value="2">Shop 2</option>
+                        <option value="3">Shop 3</option>
+                        <option value="4">Shop 4</option>
+                    </select>
+                </div>` : `<input type="hidden" name="shop" value="${currentRole}">`;
+
+            if (target === 'inventory') {
+                title.textContent = "New Stock Piece Injection Entry";
+                let supplierDropdownOptions = `<option value="Direct Import">-- Direct Import (No Listed Supplier) --</option>` + 
+                    globalSuppliers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+
+                fields.innerHTML = `
+                    ${targetShopSelector}
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Brand Name</label>
+                            <input type="text" name="brand" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm uppercase font-bold" required placeholder="e.g. ROLEX">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Model Description</label>
+                            <input type="text" name="model" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" required placeholder="e.g. Datejust 41 Blue Diamond">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Purchase Price (China RMB ¥)</label>
+                            <input type="number" step="0.01" name="rmb_buy_price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm text-amber-400 font-bold" required placeholder="0.00">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Total Landed Cost (Kuwait KWD)</label>
+                            <input type="number" step="0.001" name="buy_price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm text-emerald-400 font-bold" required placeholder="0.000">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Quantity Pieces</label>
+                            <input type="number" name="qty" min="1" value="1" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Linked Factory Supplier</label>
+                            <select name="supplier_name" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
+                                ${supplierDropdownOptions}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Retail Target Price (KWD)</label>
+                            <input type="number" step="0.001" name="sell_price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold text-sky-400" required placeholder="0.000">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Dealer Wholesale Price (KWD)</label>
+                            <input type="number" step="0.001" name="dealer_price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold text-purple-400" required placeholder="0.000">
+                        </div>
+                    </div>`;
+
+            } else if (target === 'sales') {
+                title.textContent = "Record Sale Invoice Transaction";
+                
+                let currentSalesRoleShop = (currentRole === 'owner') ? document.getElementById('owner-shop-filter').value : currentRole;
+                let activeAvailableWatches = globalInventory.filter(w => w.qty > 0);
+                if (currentSalesRoleShop !== 'all') {
+                    activeAvailableWatches = activeAvailableWatches.filter(w => w.shop == parseInt(currentSalesRoleShop));
+                }
+
+                let watchOptions = activeAvailableWatches.map(w => 
+                    `<option value="${w.id}">[Shop ${w.shop}] ${w.brand.toUpperCase()} - ${w.model} (Stock: ${w.qty} pcs) — Retail: ${parseFloat(w.sell_price).toFixed(3)} KD</option>`
+                ).join('');
+
+                fields.innerHTML = `
+                    ${targetShopSelector}
+                    <div>
+                        <label class="block text-xs font-bold mb-1 uppercase text-yellow-500 tracking-wide">Select Watch (Type name here to search instant)</label>
+                        <select id="sale-watch-select" name="watch_id" class="w-full bg-gray-800 text-white text-sm" required>
+                            <option value="">-- Start typing watch brand or model details... --</option>
+                            ${watchOptions || '<option value="">No pieces loaded in active warehouse registries.</option>'}
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Sale Quantity</label>
+                            <input type="number" name="qty" id="sale-qty" min="1" value="1" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Final Charged Price Per Unit (KD)</label>
+                            <input type="number" step="0.001" name="sell_price" id="sale-unit-price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm text-yellow-500 font-bold" required placeholder="0.000">
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-800/60 p-3 rounded border border-gray-700 space-y-3">
+                        <p class="text-xs font-bold text-yellow-500 uppercase tracking-wide">Customer Details (Leave blank if walk-in cash customer)</p>
+                        <div>
+                            <label class="block text-[11px] uppercase tracking-wider text-gray-400 mb-0.5">Customer Name / Trader Name</label>
+                            <input type="text" name="manual_cust_name" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-white text-sm" placeholder="e.g. Faisal Al-Rashidi">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[11px] uppercase tracking-wider text-gray-400 mb-0.5">Phone Number</label>
+                                <input type="text" name="manual_cust_phone" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-white text-sm font-mono" placeholder="e.g. 66554433">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] uppercase tracking-wider text-gray-400 mb-0.5">Classification</label>
+                                <select name="manual_cust_type" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-white text-sm">
+                                    <option value="Retail">Retail Customer</option>
+                                    <option value="Dealer">Dealer / Trader</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 bg-gray-800/40 p-3 rounded border border-gray-800">
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Amount Paid Right Now (KD)</label>
+                            <input type="number" step="0.001" name="paid" id="sale-paid-amount" value="0.000" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm text-emerald-400 font-bold" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Primary Payment Mode</label>
+                            <select name="payment" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
+                                <option value="Cash">Cash Currency</option>
+                                <option value="KNET">KNET Card Portal</option>
+                                <option value="Credit / Balance">Credit Deferred Ledger</option>
+                            </select>
+                        </div>
+                    </div>`;
+                
+                setTimeout(() => {
+                    const selectElement = document.getElementById('sale-watch-select');
+                    const priceInp = document.getElementById('sale-unit-price');
+                    const paidInp = document.getElementById('sale-paid-amount');
+                    const qtyInp = document.getElementById('sale-qty');
+
+                    choicesInstance = new Choices(selectElement, {
+                        searchEnabled: true,
+                        itemSelectText: '',
+                        placeholder: true,
+                        placeholderValue: 'Type brand name or model here to search...',
+                        shouldSort: false
+                    });
+
+                    function runFormAutofillFields() {
+                        const targetId = selectElement.value;
+                        if(!targetId) return;
+                        const watch = globalInventory.find(w => w.id == targetId);
+                        if(watch) {
+                            priceInp.value = parseFloat(watch.sell_price).toFixed(3);
+                            paidInp.value = (parseFloat(watch.sell_price) * parseInt(qtyInp.value)).toFixed(3);
+                        }
+                    }
+
+                    selectElement.addEventListener('change', runFormAutofillFields);
+                    qtyInp.addEventListener('input', runFormAutofillFields);
+                }, 100);
+
+            } else if (target === 'customers') {
+                title.textContent = "Create Client Account Master File";
+                fields.innerHTML = `
+                    ${targetShopSelector}
+                    <div>
+                        <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Customer Full Name</label>
+                        <input type="text" name="name" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required placeholder="e.g. Abdullah Al-Mutairi">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Phone Number (Kuwait)</label>
+                            <input type="text" name="phone" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" placeholder="e.g. 99001122">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Account Classification</label>
+                            <select name="type" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
+                                <option value="Retail">Standard Retail Buyer</option>
+                                <option value="Dealer">Watch Trader / Dealer Network</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Remarks / Business Notes</label>
+                        <textarea name="notes" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm h-16" placeholder="Business notes..."></textarea>
+                    </div>`;
+            } else if (target === 'suppliers') {
+                title.textContent = "Register New Supply Vendor Resource";
+                fields.innerHTML = `
+                    <div>
+                        <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Supplier/Company Name</label>
+                        <input type="text" name="name" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required placeholder="e.g. Shenzhen Factory Limited">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Contact Representative</label>
+                            <input type="text" name="contact" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" placeholder="e.g. Mr. Wang">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Phone</label>
+                            <input type="text" name="phone" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" placeholder="e.g. +86 139 0000 0000">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Email Address</label>
+                            <input type="email" name="email" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" placeholder="factory@watchsupply.com">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Country Location</label>
+                            <input type="text" name="country" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" placeholder="e.g. China">
+                        </div>
+                    </div>`;
+            }
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
+        function closeModal() { 
+            if(choicesInstance) { choicesInstance.destroy(); choicesInstance = null; }
+            document.getElementById('modal-container').classList.add('hidden'); 
+            document.getElementById('data-form').reset(); 
+        }
+
+        function openPaymentCollectionModal(customerId) {
+            const cust = globalCustomers.find(c => c.id == customerId); if(!cust) return;
+            currentModalTarget = 'collect_payment'; const fields = document.getElementById('form-fields');
+            document.getElementById('modal-title').textContent = `Receive Payment: ${cust.name}`;
+            fields.innerHTML = `
+                <input type="hidden" name="customer_id" value="${cust.id}">
+                <div class="bg-gray-800 p-4 rounded border border-gray-700 text-center">
+                    <p class="text-xs text-gray-400 uppercase font-bold">Current Active Balance Owed</p>
+                    <p class="text-2xl font-bold text-red-400 mt-1">${parseFloat(cust.credit || 0).toFixed(3)} KD</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Amount Received (KD)</label>
+                    <input type="number" step="0.001" name="amount_received" min="0.001" max="${cust.credit}" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-xl font-bold text-emerald-400 text-center" required>
+                </div>`;
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault(); const formData = new FormData(e.target); const data = Object.fromEntries(formData.entries());
+
+            if (currentModalTarget === 'inventory') {
+                const payload = {
+                    shop: parseInt(data.shop), brand: data.brand.trim().toUpperCase(), model: data.model.trim(),
+                    qty: parseInt(data.qty), rmb_buy_price: parseFloat(data.rmb_buy_price || 0), exchange_rate: 0,
+                    buy_price: parseFloat(data.buy_price || 0), sell_price: parseFloat(data.sell_price || 0),
+                    dealer_price: parseFloat(data.dealer_price || 0), supplier_name: data.supplier_name, box: true, papers: true
+                };
+                await _supabase.from('inventory').insert([payload]);
+
+            } else if (currentModalTarget === 'sales') {
+                const watch = globalInventory.find(w => w.id == data.watch_id); if(!watch) return;
+                const qtySold = parseInt(data.qty); if(qtySold > watch.qty) return alert("Insufficient stock pieces!");
+
+                const totalRevenuePrice = parseFloat(data.sell_price) * qtySold;
+                const totalCostPrice = parseFloat(watch.buy_price) * qtySold;
+                const initialPaidAmount = parseFloat(data.paid || 0);
+                const outstandingDebtGained = totalRevenuePrice - initialPaidAmount;
+
+                let calculatedCustomerId = null;
+
+                if (data.manual_cust_name && data.manual_cust_name.trim() !== '') {
+                    const cleanName = data.manual_cust_name.trim();
+                    const cleanPhone = data.manual_cust_phone ? data.manual_cust_phone.trim() : '';
+                    let existingCust = globalCustomers.find(c => c.name.toLowerCase() === cleanName.toLowerCase());
+                    
+                    if (existingCust) {
+                        calculatedCustomerId = existingCust.id;
+                        const updatedCredit = parseFloat(existingCust.credit || 0) + outstandingDebtGained;
+                        const updatedCount = parseInt(existingCust.paid || 0) + 1;
+                        await _supabase.from('customers').update({ credit: updatedCredit, paid: updatedCount }).eq('id', existingCust.id);
+                    } else {
+                        const newCustRes = await _supabase.from('customers').insert([{
+                            name: cleanName, phone: cleanPhone, type: data.manual_cust_type, shop: parseInt(data.shop),
+                            notes: 'Created on invoice checkout', credit: outstandingDebtGained, paid: 1
+                        }]).select();
+                        if (newCustRes.data && newCustRes.data.length > 0) calculatedCustomerId = newCustRes.data[0].id;
+                    }
+                }
+
+                const salePayload = {
+                    shop: parseInt(data.shop), brand: watch.brand, model: watch.model, qty: qtySold,
+                    sell_price: parseFloat(data.sell_price), buy_price: parseFloat(watch.buy_price),
+                    profit: totalRevenuePrice - totalCostPrice, customer_id: calculatedCustomerId,
+                    date: new Date().toLocaleDateString('en-GB') + ' ' + new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'}),
+                    payment: data.payment, paid: initialPaidAmount
+                };
+
+                await _supabase.from('inventory').update({ qty: watch.qty - qtySold }).eq('id', watch.id);
+                await _supabase.from('sales').insert([salePayload]);
+
+            } else if (currentModalTarget === 'customers') {
+                await _supabase.from('customers').insert([{ name: data.name.trim(), phone: data.phone.trim(), type: data.type, shop: parseInt(data.shop), notes: data.notes.trim(), credit: 0, paid: 0 }]);
+            } else if (currentModalTarget === 'suppliers') {
+                await _supabase.from('suppliers').insert([{ name: data.name.trim(), contact: data.contact.trim(), phone: data.phone.trim(), email: data.email.trim(), country: data.country.trim(), outstanding: 0, total_purchases: 0 }]);
+            } else if (currentModalTarget === 'collect_payment') {
+                const cObj = globalCustomers.find(c => c.id == parseInt(data.customer_id));
+                if (cObj) await _supabase.from('customers').update({ credit: parseFloat(cObj.credit || 0) - parseFloat(data.amount_received) }).eq('id', cObj.id);
+            }
+            closeModal(); loadData();
+        }
+
+        async function confirmDeleteRecord(table, id) {
+            if (currentRole !== 'owner') return alert("Access Denied.");
+            if (!confirm("Are you sure you want to permanently delete this item?")) return;
+            await _supabase.from(table).delete().eq('id', id); loadData();
+        }
+
+        function downloadExcelBackup() {
+            if (currentRole !== 'owner') return alert("Access Denied.");
+            const excelStockRows = globalInventory.map(item => ({
+                "Shop Assignment": shopNames[item.shop] || "Unknown", "Brand Name": item.brand, "Model Details": item.model,
+                "China Supplier Factory": item.supplier_name || "Direct Import", "Stock Quantity Available": parseInt(item.qty),
+                "Purchase Price (RMB)": parseFloat(item.rmb_buy_price || 0), "Landed Cost (KWD)": parseFloat(item.buy_price || 0),
+                "Retail Price (KWD)": parseFloat(item.sell_price || 0), "Dealer Wholesale Price (KWD)": parseFloat(item.dealer_price || 0)
+            }));
+            const excelSalesRows = globalSales.map(sale => ({
+                "Transaction Date/Time": sale.date, "Shop Origin": shopNames[sale.shop] || "Unknown", "Watch Brand": sale.brand,
+                "Watch Model": sale.model, "Quantity Sold": parseInt(sale.qty), "Client Name": findCustomerName(sale.customer_id),
+                "Unit Price Charged (KWD)": parseFloat(sale.sell_price || 0), "Total Invoice Gross (KWD)": parseFloat(sale.sell_price || 0) * parseInt(sale.qty || 1),
+                "Amount Collected Down (KWD)": parseFloat(sale.paid || 0), "Outstanding Credit Balance (KWD)": (parseFloat(sale.sell_price || 0) * parseInt(sale.qty || 1)) - parseFloat(sale.paid || 0),
+                "Net Profit Realized (KWD)": parseFloat(sale.profit || 0)
+            }));
+            const excelCustomerRows = globalCustomers.map(cust => ({
+                "Customer Identity Name": cust.name, "Kuwait Mobile Contact": cust.phone || "—", "Classification Group": cust.type || "Retail",
+                "Total Purchases Counts": parseInt(cust.paid || 0), "Active Credit Debt Due (KWD)": parseFloat(cust.credit || 0)
+            }));
+            const excelSupplierRows = globalSuppliers.map(sup => ({
+                "Factory/Company Name": sup.name, "Contact Representative": sup.contact || "—", "Phone Number": sup.phone || "—",
+                "Country Origin": sup.country || "—", "Our Outstanding Payables (KWD)": parseFloat(sup.outstanding || 0)
+            }));
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(excelStockRows), "Current Stock Inventory");
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(excelSalesRows), "Sales Invoices History");
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(excelCustomerRows), "Customers Credit Ledger");
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(excelSupplierRows), "Suppliers Directory");
+            XLSX.writeFile(workbook, `Al_Wadi_Watches_Master_Backup_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        }
+
+        function printInvoice(saleId) {
+            const targetSale = globalSales.find(s => s.id == saleId); if(!targetSale) return;
+            const printZone = document.getElementById('invoice-print-zone');
+            const totalInvoicePriceValue = parseFloat(targetSale.sell_price || 0) * parseInt(targetSale.qty || 1);
+            const customerOwedRemainingBalance = totalInvoicePriceValue - parseFloat(targetSale.paid || 0);
+
+            printZone.innerHTML = `
+                <div style="text-align: center; margin-bottom: 30px; font-family: 'Times New Roman', serif;">
+                    <h1 style="font-size: 28px; font-weight: bold; margin: 0; text-transform: uppercase;">Al Wadi Watches</h1>
+                    <p style="margin: 5px 0; font-size: 14px; font-style: italic;">Luxury Watch Trading — Kuwait</p>
+                    <p style="margin: 2px 0; font-size: 12px; font-family: monospace;">Branch: ${shopNames[targetSale.shop] || 'Main Branch'}</p>
+                    <div style="border-bottom: 2px double #000; margin-top: 15px;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 13px;">
+                    <div><strong>INVOICE DETAILS:</strong><br>Invoice ID: #AW-${targetSale.id}<br>Date: ${targetSale.date || '—'}<br>Method: ${targetSale.payment || 'Standard'}</div>
+                    <div style="text-align: right;"><strong>CUSTOMER:</strong><br>${findCustomerName(targetSale.customer_id)}</div>
+                </div>
+                <table style="border-collapse: collapse; margin-bottom: 40px; text-align: left; font-size: 14px; width: 100%;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid #000; font-weight: bold;">
+                            <th style="padding: 8px 0;">Item Description</th>
+                            <th style="padding: 8px 0; text-align: center;">Qty</th>
+                            <th style="padding: 8px 0; text-align: right;">Unit Price</th>
+                            <th style="padding: 8px 0; text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid #ddd;">
+                            <td style="padding: 12px 0;"><strong style="text-transform: uppercase;">${targetSale.brand}</strong> — ${targetSale.model}</td>
+                            <td style="padding: 12px 0; text-align: center;">${targetSale.qty}</td>
+                            <td style="padding: 12px 0; text-align: right;">${parseFloat(targetSale.sell_price).toFixed(3)} KD</td>
+                            <td style="padding: 12px 0; text-align: right;">${totalInvoicePriceValue.toFixed(3)} KD</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="display: flex; justify-content: flex-end; font-size: 14px;">
+                    <div style="width: 250px; line-height: 2;">
+                        <div style="display: flex; justify-content: space-between;"><span>Gross Total:</span><span>${totalInvoicePriceValue.toFixed(3)} KD</span></div>
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding-bottom: 4px; color: green; font-weight: bold;"><span>Paid Today:</span><span>${parseFloat(targetSale.paid || 0).toFixed(3)} KD</span></div>
+                        <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-top: 6px; color: ${customerOwedRemainingBalance > 0 ? 'red' : 'black'}"><span>Balance Owed:</span><span>${customerOwedRemainingBalance.toFixed(3)} KD</span></div>
+                    </div>
+                </div>`;
+            window.print();
         }
     </script>
 </body>
