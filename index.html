@@ -345,22 +345,31 @@
         async function loadData() {
             if (currentRole === 'owner') currentShop = document.getElementById('owner-shop-filter').value;
 
-            let invQuery = _supabase.from('inventory').select('*').order('brand', { ascending: true });
-            let salesQuery = _supabase.from('sales').select('*').order('id', { ascending: false });
-            let custQuery = _supabase.from('customers').select('*').order('name', { ascending: true });
-            let suppQuery = _supabase.from('suppliers').select('*').order('name', { ascending: true });
+            // FIXED: We fetch all master rows without query constraints so nothing gets hidden silently
+            const [invRes, salesRes, custRes, suppRes] = await Promise.all([
+                _supabase.from('inventory').select('*').order('brand', { ascending: true }),
+                _supabase.from('sales').select('*').order('id', { ascending: false }),
+                _supabase.from('customers').select('*').order('name', { ascending: true }),
+                _supabase.from('suppliers').select('*').order('name', { ascending: true })
+            ]);
 
-            if (currentShop !== 'all') {
-                invQuery = invQuery.eq('shop', parseInt(currentShop));
-                salesQuery = salesQuery.eq('shop', parseInt(currentShop));
-                custQuery = custQuery.eq('shop', parseInt(currentShop));
-            }
-
-            const [invRes, salesRes, custRes, suppRes] = await Promise.all([invQuery, salesQuery, custQuery, suppQuery]);
-            globalInventory = invRes.data || [];
-            globalSales = salesRes.data || [];
-            globalCustomers = custRes.data || [];
+            // Save raw data sets globally
+            const rawInventory = invRes.data || [];
+            const rawSales = salesRes.data || [];
+            const rawCustomers = custRes.data || [];
             globalSuppliers = suppRes.data || [];
+
+            // Apply smart filtering programmatically inside code memory, protecting non-shop entries
+            if (currentShop === 'all') {
+                globalInventory = rawInventory;
+                globalSales = rawSales;
+                globalCustomers = rawCustomers;
+            } else {
+                const filterShopInt = parseInt(currentShop);
+                globalInventory = rawInventory.filter(item => !item.shop || item.shop === filterShopInt);
+                globalSales = rawSales.filter(sale => !sale.shop || sale.shop === filterShopInt);
+                globalCustomers = rawCustomers.filter(cust => !cust.shop || cust.shop === filterShopInt);
+            }
 
             calculateMetricsSummary();
             filterAllTables();
@@ -414,7 +423,6 @@
             });
             renderCustomersTable(filteredCustomers);
             
-            // Unified Search Bar Support logic for Suppliers ledger sheet
             const suppSearchInput = document.getElementById('search-suppliers');
             const suppQuery = suppSearchInput ? suppSearchInput.value.toLowerCase().trim() : '';
             const filteredSuppliers = globalSuppliers.filter(sup => {
@@ -884,7 +892,6 @@
             XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(excelStockRows), "Current Stock Inventory");
             XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(excelSalesRows), "Sales Invoices History");
             XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(excelCustomerRows), "Customers Credit Ledger");
-            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(excelSupplierRows), "Suppliers Directory");
             XLSX.writeFile(workbook, `Al_Wadi_Watches_Master_Backup_${new Date().toISOString().slice(0, 10)}.xlsx`);
         }
 
