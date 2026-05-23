@@ -15,10 +15,13 @@
         .choices__list--dropdown { background-color: #111827 !important; border: 1px solid #374151 !important; color: #fff !important; }
         .choices__list--dropdown .choices__item--selectable.is-highlighted { background-color: #ca8a04 !important; color: #fff !important; }
         .choices__placeholder { color: #9ca3af !important; opacity: 1; }
+        
+        /* FIXED: Master CSS Print Engine Overrides */
         @media print {
-            body * { visibility: hidden; }
-            #invoice-print-zone, #invoice-print-zone * { visibility: visible; }
-            #invoice-print-zone { position: absolute; left: 0; top: 0; width: 100%; }
+            body { background: #fff !important; color: #000 !important; }
+            #login-screen, #app-screen, #modal-container, header, nav, main, button { display: none !important; visibility: hidden !important; }
+            #invoice-print-zone, #invoice-print-zone * { display: block !important; visibility: visible !important; }
+            #invoice-print-zone { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; background: #fff !important; }
         }
     </style>
 </head>
@@ -236,7 +239,7 @@
         </div>
     </div>
 
-    <div id="invoice-print-zone" class="hidden bg-white text-black p-8 font-serif leading-relaxed"></div>
+    <div id="invoice-print-zone" style="background: white !important; color: black !important;"></div>
 
     <script>
         const SUPABASE_URL = "https://sauwqklxwmzhkkidvony.supabase.co";
@@ -986,7 +989,7 @@
             const activeBranch = branchDetails[targetSale.shop] || { name: "Al Wadi Watches — Main Showroom", location: "Kuwait City, State of Kuwait", phone: "+965 2200 0000", license: "Establishment 1990s" };
 
             printZone.innerHTML = `
-                <div style="font-family: 'Times New Roman', serif; color: #000; padding: 20px; line-height: 1.6;">
+                <div style="font-family: 'Times New Roman', serif; color: #000; padding: 20px; line-height: 1.6; background: white !important;">
                     <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid #000; padding-bottom: 15px;">
                         <h1 style="font-size: 26px; font-weight: bold; margin: 0; text-transform: uppercase; letter-spacing: 1px;">${activeBranch.name}</h1>
                         <p style="margin: 4px 0; font-size: 13px; font-style: italic; color: #333;">Luxury Timepieces & Trading</p>
@@ -1008,10 +1011,10 @@
                     <table style="width: 100%; border-collapse: collapse; margin-bottom: 35px; text-align: left; font-size: 13px; font-family: sans-serif;">
                         <thead>
                             <tr style="border-bottom: 2px solid #000; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">
-                                <th style="padding: 10px 0;">Watch Model Description</th>
-                                <th style="padding: 10px 0; text-align: center; width: 80px;">Qty</th>
-                                <th style="padding: 10px 0; text-align: right; width: 120px;">Unit Rate</th>
-                                <th style="padding: 10px 0; text-align: right; width: 140px;">Gross Total</th>
+                                <th style="padding: 8px 0;">Watch Model Description</th>
+                                <th style="padding: 8px 0; text-align: center; width: 80px;">Qty</th>
+                                <th style="padding: 8px 0; text-align: right; width: 120px;">Unit Price</th>
+                                <th style="padding: 8px 0; text-align: right; width: 140px;">Gross Total</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1042,11 +1045,11 @@
                                 <span style="font-size: 15px;">${netInvoiceValue.toFixed(3)} KD</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; color: #16a34a; font-weight: bold; border-bottom: 1px dashed #ddd;">
-                                <span>Cash/KNET Received Today:</span>
+                                <span>Paid Amount:</span>
                                 <span>${parseFloat(targetSale.paid || 0).toFixed(3)} KD</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-top: 8px; border-top: 1px solid #000; padding-top: 4px; color: ${customerOwedRemainingBalance > 0 ? '#dc2626' : '#000'}">
-                                <span>Balance Outstanding:</span>
+                                <span>Balance Owed:</span>
                                 <span style="font-size: 17px; font-family: 'Times New Roman', serif;">${customerOwedRemainingBalance.toFixed(3)} KD</span>
                             </div>
                         </div>
