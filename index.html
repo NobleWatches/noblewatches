@@ -16,7 +16,6 @@
         .choices__list--dropdown .choices__item--selectable.is-highlighted { background-color: #ca8a04 !important; color: #fff !important; }
         .choices__placeholder { color: #9ca3af !important; opacity: 1; }
         
-        /* FIXED: Master CSS Print Engine Overrides */
         @media print {
             body { background: #fff !important; color: #000 !important; }
             #login-screen, #app-screen, #modal-container, header, nav, main, button { display: none !important; visibility: hidden !important; }
@@ -980,83 +979,90 @@
             const customerOwedRemainingBalance = netInvoiceValue - parseFloat(targetSale.paid || 0);
 
             const branchDetails = {
-                "1": { name: "Al Wadi Watches — Branch 1", location: "Sharq, Ahmed Al Jaber Street, Kuwait City", phone: "+965 2244 1111", license: "Commercial Lic: #1990/112" },
-                "2": { name: "Al Wadi Watches — Branch 2", location: "Salmiya, Salem Al Mubarak Street, Kuwait", phone: "+965 2577 2222", license: "Commercial Lic: #1995/344" },
-                "3": { name: "Al Wadi Watches — Branch 3", location: "The Avenues Mall, Phase 2, Rai", phone: "+965 2220 3333", license: "Commercial Lic: #2005/789" },
-                "4": { name: "Al Wadi Watches — Branch 4", location: "Fahaheel, Dabbous Street, Kuwait", phone: "+965 2391 4444", license: "Commercial Lic: #2012/556" }
+                "1": { name: "Al Wadi Watches — Branch 1", location: "Sharq, Ahmed Al Jaber Street, Kuwait City", phone: "+965 2244 1111", license: "Lic: #1990/112" },
+                "2": { name: "Al Wadi Watches — Branch 2", location: "Salmiya, Salem Al Mubarak Street, Kuwait", phone: "+965 2577 2222", license: "Lic: #1995/344" },
+                "3": { name: "Al Wadi Watches — Branch 3", location: "The Avenues Mall, Phase 2, Rai", phone: "+965 2220 3333", license: "Lic: #2005/789" },
+                "4": { name: "Al Wadi Watches — Branch 4", location: "Fahaheel, Dabbous Street, Kuwait", phone: "+965 2391 4444", license: "Lic: #2012/556" }
             };
 
             const activeBranch = branchDetails[targetSale.shop] || { name: "Al Wadi Watches — Main Showroom", location: "Kuwait City, State of Kuwait", phone: "+965 2200 0000", license: "Establishment 1990s" };
 
             printZone.innerHTML = `
-                <div style="font-family: 'Times New Roman', serif; color: #000; padding: 20px; line-height: 1.6; background: white !important;">
-                    <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid #000; padding-bottom: 15px;">
-                        <h1 style="font-size: 26px; font-weight: bold; margin: 0; text-transform: uppercase; letter-spacing: 1px;">${activeBranch.name}</h1>
-                        <p style="margin: 4px 0; font-size: 13px; font-style: italic; color: #333;">Luxury Timepieces & Trading</p>
-                        <p style="margin: 2px 0; font-size: 12px; font-family: sans-serif;">📍 ${activeBranch.location}</p>
-                        <p style="margin: 2px 0; font-size: 12px; font-family: sans-serif;">📞 Phone: ${activeBranch.phone} | ${activeBranch.license}</p>
+                <div style="font-family: 'Times New Roman', serif; color: #000; padding: 10px; line-height: 1.4; background: white !important; max-width: 100%; margin: 0 auto;">
+                    
+                    <div style="text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 8px;">
+                        <h1 style="font-size: 24px; font-weight: bold; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">${activeBranch.name}</h1>
+                        <p style="margin: 2px 0; font-size: 12px; font-style: italic; color: #333;">Luxury Timepieces & Trading</p>
+                        <p style="margin: 1px 0; font-size: 11px; font-family: sans-serif;">📍 ${activeBranch.location} | 📞 ${activeBranch.phone}</p>
+                        <p style="margin: 1px 0; font-size: 11px; font-family: sans-serif; font-weight: bold;">${activeBranch.license}</p>
                     </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 13px; font-family: sans-serif;">
-                        <div>
-                            <h3 style="font-size: 14px; font-weight: bold; margin: 0 0 5px 0; text-transform: uppercase; border-bottom: 1px solid #ddd; padding-bottom: 3px;">Invoice Summary</h3>
-                            <strong>Invoice ID:</strong> #AW-${targetSale.id}<br>
-                            <strong>Date/Time:</strong> ${targetSale.date || '—'}<br>
-                            <strong>Payment Mode:</strong> ${targetSale.payment || 'Standard Method'}
-                        </div>
-                        <div style="text-align: right;">
-                            <h3 style="font-size: 14px; font-weight: bold; margin: 0 0 5px 0; text-transform: uppercase; border-bottom: 1px solid #ddd; padding-bottom: 3px;">Customer File</h3>
-                            <strong>Client Identity:</strong> ${findCustomerName(targetSale.customer_id)}
-                        </div>
-                    </div>
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 35px; text-align: left; font-size: 13px; font-family: sans-serif;">
+
+                    <table style="width: 100%; margin-bottom: 15px; font-size: 11px; font-family: sans-serif; border: 1px solid #000; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 6px; border: 1px solid #000; width: 50%; vertical-align: top;">
+                                <strong style="text-transform: uppercase; font-size: 10px; display: block; margin-bottom: 2px; color: #333;">Invoice Summary</strong>
+                                <strong>Invoice ID:</strong> #AW-${targetSale.id}<br>
+                                <strong>Date/Time:</strong> ${targetSale.date || '—'}<br>
+                                <strong>Payment Mode:</strong> ${targetSale.payment || 'Standard Method'}
+                            </td>
+                            <td style="padding: 6px; border: 1px solid #000; width: 50%; vertical-align: top; text-align: right;">
+                                <strong style="text-transform: uppercase; font-size: 10px; display: block; margin-bottom: 2px; color: #333; text-align: right;">Customer File</strong>
+                                <strong>Client Identity:</strong> ${findCustomerName(targetSale.customer_id)}
+                            </td>
+                        </tr>
+                    </table>
+
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; text-align: left; font-size: 12px; font-family: sans-serif; border: 1px solid #000;">
                         <thead>
-                            <tr style="border-bottom: 2px solid #000; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">
-                                <th style="padding: 8px 0;">Watch Model Description</th>
-                                <th style="padding: 8px 0; text-align: center; width: 80px;">Qty</th>
-                                <th style="padding: 8px 0; text-align: right; width: 120px;">Unit Price</th>
-                                <th style="padding: 8px 0; text-align: right; width: 140px;">Gross Total</th>
+                            <tr style="background-color: #f3f4f6; border-bottom: 2px solid #000; font-weight: bold; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">
+                                <th style="padding: 8px; border: 1px solid #000;">Watch Model Description</th>
+                                <th style="padding: 8px; border: 1px solid #000; text-align: center; width: 70px;">Qty</th>
+                                <th style="padding: 8px; border: 1px solid #000; text-align: right; width: 110px;">Unit Rate</th>
+                                <th style="padding: 8px; border: 1px solid #000; text-align: right; width: 130px;">Gross Total</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr style="border-bottom: 1px solid #eee;">
-                                <td style="padding: 14px 0; font-size: 14px;">
-                                    <strong style="text-transform: uppercase; font-family: 'Times New Roman', serif; font-size: 15px;">${targetSale.brand}</strong> 
-                                    <span style="color: #444; margin-left: 4px;">— ${targetSale.model}</span>
+                            <tr>
+                                <td style="padding: 10px 8px; border: 1px solid #000; font-size: 13px;">
+                                    <strong style="text-transform: uppercase; font-family: 'Times New Roman', serif; font-size: 14px;">${targetSale.brand}</strong> 
+                                    <span style="color: #333; margin-left: 4px;">— ${targetSale.model}</span>
                                 </td>
-                                <td style="padding: 14px 0; text-align: center; font-weight: bold; font-size: 14px;">${targetSale.qty}</td>
-                                <td style="padding: 14px 0; text-align: right; font-mono;">${parseFloat(targetSale.sell_price).toFixed(3)} KD</td>
-                                <td style="padding: 14px 0; text-align: right; font-weight: bold; font-mono;">${grossValue.toFixed(3)} KD</td>
+                                <td style="padding: 10px 8px; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 13px;">${targetSale.qty}</td>
+                                <td style="padding: 10px 8px; border: 1px solid #000; text-align: right; font-family: monospace;">${parseFloat(targetSale.sell_price).toFixed(3)} KD</td>
+                                <td style="padding: 10px 8px; border: 1px solid #000; text-align: right; font-weight: bold; font-family: monospace;">${grossValue.toFixed(3)} KD</td>
                             </tr>
                         </tbody>
                     </table>
-                    <div style="display: flex; justify-content: flex-end; font-family: sans-serif; font-size: 13px;">
-                        <div style="width: 280px; line-height: 2.2;">
-                            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #ddd;">
-                                <span style="color: #555;">Subtotal Gross:</span>
-                                <span>${grossValue.toFixed(3)} KD</span>
-                            </div>
+
+                    <div style="display: flex; justify-content: flex-end; font-family: sans-serif; font-size: 12px;">
+                        <table style="width: 260px; border-collapse: collapse; border: 1px solid #000;">
+                            <tr style="border-bottom: 1px solid #ddd;">
+                                <td style="padding: 5px 8px; color: #555;">Subtotal Gross:</td>
+                                <td style="padding: 5px 8px; text-align: right; font-family: monospace;">${grossValue.toFixed(3)} KD</td>
+                            </tr>
                             ${discountAmount > 0 ? `
-                            <div style="display: flex; justify-content: space-between; color: #dc2626; border-bottom: 1px dashed #ddd; font-weight: 500;">
-                                <span>Trade Discount Gained:</span>
-                                <span>-${discountAmount.toFixed(3)} KD</span>
-                            </div>` : ''}
-                            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; border-bottom: 1px solid #000; padding-bottom: 2px; margin-top: 4px;">
-                                <span>Net Invoice Total:</span>
-                                <span style="font-size: 15px;">${netInvoiceValue.toFixed(3)} KD</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; color: #16a34a; font-weight: bold; border-bottom: 1px dashed #ddd;">
-                                <span>Paid Amount:</span>
-                                <span>${parseFloat(targetSale.paid || 0).toFixed(3)} KD</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-top: 8px; border-top: 1px solid #000; padding-top: 4px; color: ${customerOwedRemainingBalance > 0 ? '#dc2626' : '#000'}">
-                                <span>Balance Owed:</span>
-                                <span style="font-size: 17px; font-family: 'Times New Roman', serif;">${customerOwedRemainingBalance.toFixed(3)} KD</span>
-                            </div>
-                        </div>
+                            <tr style="border-bottom: 1px solid #ddd; color: #dc2626; font-weight: 500;">
+                                <td style="padding: 5px 8px;">Trade Discount:</td>
+                                <td style="padding: 5px 8px; text-align: right; font-family: monospace;">-${discountAmount.toFixed(3)} KD</td>
+                            </tr>` : ''}
+                            <tr style="border-bottom: 1px solid #000; font-weight: bold; background-color: #f9fafb;">
+                                <td style="padding: 6px 8px;">Net Invoice Total:</td>
+                                <td style="padding: 6px 8px; text-align: right; font-family: monospace; font-size: 13px;">${netInvoiceValue.toFixed(3)} KD</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #ddd; color: #16a34a; font-weight: bold;">
+                                <td style="padding: 5px 8px;">Amount Received:</td>
+                                <td style="padding: 5px 8px; text-align: right; font-family: monospace;">${parseFloat(targetSale.paid || 0).toFixed(3)} KD</td>
+                            </tr>
+                            <tr style="font-weight: bold; background-color: #f3f4f6; color: ${customerOwedRemainingBalance > 0 ? '#dc2626' : '#000'}">
+                                <td style="padding: 6px 8px; font-size: 13px;">Balance Owed:</td>
+                                <td style="padding: 6px 8px; text-align: right; font-family: 'Times New Roman', serif; font-size: 14px;">${customerOwedRemainingBalance.toFixed(3)} KD</td>
+                            </tr>
+                        </table>
                     </div>
-                    <div style="text-align: center; margin-top: 60px; padding-top: 15px; border-top: 1px solid #eee; font-size: 11px; font-family: sans-serif; color: #555;">
-                        <p style="margin: 3px 0; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Thank you for investing with Al Wadi Watches</p>
-                        <p style="margin: 2px 0;">All luxury timepieces are certified authentic. Retain this invoice certificate for your warranty logs.</p>
+
+                    <div style="text-align: center; margin-top: 30px; padding-top: 10px; border-top: 1px solid #000; font-size: 10px; font-family: sans-serif; color: #444;">
+                        <p style="margin: 2px 0; font-weight: bold; text-transform: uppercase; letter-spacing: 0.3px;">Thank you for investing with Al Wadi Watches</p>
+                        <p style="margin: 1px 0;">All luxury timepieces are certified authentic. Retain this invoice certificate for your logs.</p>
                     </div>
                 </div>`;
             window.print();
