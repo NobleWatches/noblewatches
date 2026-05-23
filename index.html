@@ -566,7 +566,7 @@
                     </select>
                 </div>` : `<input type="hidden" name="shop" value="${currentRole}">`;
 
-            if (target === 'inventory') {
+           if (target === 'inventory') {
                 title.textContent = "New Stock Piece Injection Entry";
                 let supplierDropdownOptions = `<option value="Direct Import">-- Direct Import (No Listed Supplier) --</option>` + 
                     globalSuppliers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
@@ -583,20 +583,22 @@
                             <input type="text" name="model" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" required placeholder="e.g. Datejust 41 Blue Diamond">
                         </div>
                     </div>
+                    
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Purchase Price (China RMB ¥)</label>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Purchase Price Per Piece (China RMB ¥)</label>
                             <input type="number" step="0.01" name="rmb_buy_price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm text-amber-400 font-bold" required placeholder="0.00">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Total Landed Cost (Kuwait KWD)</label>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Landed Cost Per Piece (Kuwait KWD)</label>
                             <input type="number" step="0.001" name="buy_price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm text-emerald-400 font-bold" required placeholder="0.000">
                         </div>
                     </div>
+
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Quantity Pieces</label>
-                            <input type="number" name="qty" min="1" value="1" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Total Quantity (Total Pieces Received)</label>
+                            <input type="number" name="qty" min="1" value="1" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required placeholder="e.g. 100">
                         </div>
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Linked Factory Supplier</label>
@@ -605,13 +607,14 @@
                             </select>
                         </div>
                     </div>
+
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Retail Target Price (KWD)</label>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Retail Price Per Piece (KWD)</label>
                             <input type="number" step="0.001" name="sell_price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold text-sky-400" required placeholder="0.000">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Dealer Wholesale Price (KWD)</label>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Dealer Price Per Piece (KWD)</label>
                             <input type="number" step="0.001" name="dealer_price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold text-purple-400" required placeholder="0.000">
                         </div>
                     </div>`;
