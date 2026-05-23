@@ -478,8 +478,12 @@
                 return;
             }
             dataList.forEach(sale => {
-                const total = parseFloat(sale.sell_price || 0) * parseInt(sale.qty || 1);
-                const paid = parseFloat(sale.paid || 0); const diff = total - paid;
+                const baseTotal = parseFloat(sale.sell_price || 0) * parseInt(sale.qty || 1);
+                // FIXED: Factor in dynamic sales discounts
+                const discAmt = parseFloat(sale.discount || 0);
+                const finalTotal = baseTotal - discAmt;
+                const paid = parseFloat(sale.paid || 0); const diff = finalTotal - paid;
+                
                 let debtStatusBadge = diff <= 0 ? 
                     `<span class="bg-emerald-950 text-emerald-400 border border-emerald-900 px-2 py-0.5 rounded-full text-xs font-semibold">Fully Paid</span>` : 
                     `<span class="bg-red-950 text-red-400 border border-red-900 px-2 py-0.5 rounded-full text-xs font-semibold">Credit: ${diff.toFixed(3)} KD</span>`;
@@ -491,7 +495,7 @@
                     <td class="p-4 font-semibold"><span class="text-yellow-500 uppercase font-bold mr-1">${sale.brand}</span> ${sale.model}</td>
                     <td class="p-4 text-center font-bold">${sale.qty}</td>
                     <td class="p-4 text-gray-300 font-medium">${findCustomerName(sale.customer_id)}</td>
-                    <td class="p-4 font-bold text-white">${total.toFixed(3)} KD</td>
+                    <td class="p-4 font-bold text-white">${finalTotal.toFixed(3)} KD ${discAmt > 0 ? `<span class="text-xs text-red-400 block font-normal">(Saved: ${discAmt.toFixed(3)} KD)</span>` : ''}</td>
                     <td class="p-4 font-semibold text-emerald-400">${paid.toFixed(3)} KD</td>
                     <td class="p-4">${debtStatusBadge}</td>
                     ${isOwner ? `<td class="p-4 font-bold text-yellow-500">${parseFloat(sale.profit || 0).toFixed(3)} KD</td>` : ''}
@@ -506,6 +510,7 @@
 
         function renderCustomersTable(dataList) {
             const tbody = document.getElementById('table-customers'); if (!tbody) return; tbody.innerHTML = '';
+            const isOwner = (currentRole === 'owner');
 
             if(dataList.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500 italic">No matching client folders found.</td></tr>`;
@@ -520,8 +525,9 @@
                     <td class="p-4"><span class="px-2 py-0.5 rounded text-xs font-semibold ${cust.type === 'Dealer' ? 'bg-purple-950 text-purple-400 border border-purple-900' : 'bg-blue-950 text-blue-400 border border-blue-900'}">${cust.type || 'Retail'}</span></td>
                     <td class="p-4 font-medium text-gray-300">${parseInt(cust.paid || 0).toLocaleString()} Purchases</td>
                     <td class="p-4 font-bold text-md ${creditVal > 0 ? 'text-red-400' : 'text-gray-500'}">${creditVal.toFixed(3)} KD</td>
-                    <td class="p-4 text-right">
-                        <button onclick="openPaymentCollectionModal(${cust.id})" class="text-xs bg-emerald-700 hover:bg-emerald-600 font-bold px-2.5 py-1 rounded text-white transition cursor-pointer">💵 Receive Money</button>
+                    <td class="p-4 text-right flex justify-end gap-1.5">
+                        <button onclick="openPaymentCollectionModal(${cust.id})" class="text-xs bg-emerald-700 hover:bg-emerald-600 font-bold px-2.5 py-1 rounded text-white transition cursor-pointer">💵 Receive</button>
+                        ${isOwner ? `<button onclick="confirmDeleteRecord('customers', ${cust.id})" class="text-red-500 hover:text-red-400 text-xs font-bold px-2 py-1 bg-red-950/40 rounded border border-red-900/60 transition cursor-pointer">Delete</button>` : ''}
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -625,30 +631,43 @@
                 }
 
                 let watchOptions = activeAvailableWatches.map(w => 
-                    `<option value="${w.id}">[Shop ${w.shop}] ${w.brand.toUpperCase()} - ${w.model} (Stock: ${w.qty} pcs) — Retail: ${parseFloat(w.sell_price).toFixed(3)} KD</option>`
+                    `<option value="${w.id}">[Shop ${w.shop}] ${w.brand.toUpperCase()} - ${w.model} (Stock: ${w.qty} pcs)</option>`
                 ).join('');
 
                 fields.innerHTML = `
                     ${targetShopSelector}
-                    <div>
-                        <label class="block text-xs font-bold mb-1 uppercase text-yellow-500 tracking-wide">Select Watch</label>
-                        <select id="sale-watch-select" name="watch_id" class="w-full bg-gray-800 text-white text-sm" required>
-                            <option value="">-- Start typing watch brand... --</option>
-                            ${watchOptions || '<option value="">No pieces available in warehouse registries.</option>'}
-                        </select>
-                    </div>
                     <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-yellow-500 tracking-wide">Customer Pricing Tier</label>
+                            <select id="sale-price-tier" name="price_tier" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-semibold focus:border-yellow-500" required>
+                                <option value="retail">Retail Tier Pricing</option>
+                                <option value="dealer">Dealer Wholesale Tier Pricing</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Select Watch Option</label>
+                            <select id="sale-watch-select" name="watch_id" class="w-full bg-gray-800 text-white text-sm" required>
+                                <option value="">-- Start typing watch brand... --</option>
+                                ${watchOptions || '<option value="">No pieces available in warehouse registries.</option>'}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Sale Quantity</label>
                             <input type="number" name="qty" id="sale-qty" min="1" value="1" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Final Charged Price Per Unit (KD)</label>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Unit Rate (KD)</label>
                             <input type="number" step="0.001" name="sell_price" id="sale-unit-price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm text-yellow-500 font-bold" required placeholder="0.000">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase text-red-400">Invoice Discount (KD)</label>
+                            <input type="number" step="0.001" name="discount" id="sale-discount" value="0.000" class="w-full bg-gray-800 border border-red-900/60 rounded p-2 text-white text-sm font-bold text-red-400" required>
                         </div>
                     </div>
                     <div class="bg-gray-800/60 p-3 rounded border border-gray-700 space-y-3">
-                        <p class="text-xs font-bold text-yellow-500 uppercase tracking-wide">Customer Details</p>
+                        <p class="text-xs font-bold text-yellow-500 uppercase tracking-wide">Customer Directory Target Link</p>
                         <div>
                             <label class="block text-[11px] uppercase text-gray-400 mb-0.5">Customer Name</label>
                             <input type="text" name="manual_cust_name" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-white text-sm" placeholder="e.g. Faisal Al-Rashidi">
@@ -669,7 +688,7 @@
                     </div>
                     <div class="grid grid-cols-2 gap-3 bg-gray-800/40 p-3 rounded border border-gray-800">
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Amount Paid Now (KD)</label>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Gross Collected (KD)</label>
                             <input type="number" step="0.001" name="paid" id="sale-paid-amount" value="0.000" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm text-emerald-400 font-bold" required>
                         </div>
                         <div>
@@ -687,19 +706,30 @@
                     const priceInp = document.getElementById('sale-unit-price');
                     const paidInp = document.getElementById('sale-paid-amount');
                     const qtyInp = document.getElementById('sale-qty');
+                    const tierSelect = document.getElementById('sale-price-tier');
+                    const discountInp = document.getElementById('sale-discount');
 
                     choicesInstance = new Choices(selectElement, { searchEnabled: true, itemSelectText: '', placeholder: true, placeholderValue: 'Type name to search...', shouldSort: false });
 
+                    // FIXED: Dynamic toggle calculation between Wholesale Dealer and Retail tier parameters
                     function runFormAutofillFields() {
                         const targetId = selectElement.value; if(!targetId) return;
                         const watch = globalInventory.find(w => w.id == targetId);
                         if(watch) {
-                            priceInp.value = parseFloat(watch.sell_price).toFixed(3);
-                            paidInp.value = (parseFloat(watch.sell_price) * parseInt(qtyInp.value)).toFixed(3);
+                            const activeTier = tierSelect.value;
+                            const targetUnitPrice = (activeTier === 'dealer') ? parseFloat(watch.dealer_price || 0) : parseFloat(watch.sell_price || 0);
+                            
+                            priceInp.value = targetUnitPrice.toFixed(3);
+                            
+                            const qty = parseInt(qtyInp.value || 1);
+                            const disc = parseFloat(discountInp.value || 0);
+                            paidInp.value = Math.max(0, (targetUnitPrice * qty) - disc).toFixed(3);
                         }
                     }
                     selectElement.addEventListener('change', runFormAutofillFields);
+                    tierSelect.addEventListener('change', runFormAutofillFields);
                     qtyInp.addEventListener('input', runFormAutofillFields);
+                    discountInp.addEventListener('input', runFormAutofillFields);
                 }, 100);
 
             } else if (target === 'customers') {
@@ -759,11 +789,8 @@
         }
 
         async function handleFormSubmit(e) {
-            e.preventDefault(); 
-            const formData = new FormData(e.target); 
-            const data = Object.fromEntries(formData.entries());
+            e.preventDefault(); const formData = new FormData(e.target); const data = Object.fromEntries(formData.entries());
 
-            // FIXED: Handle field matching safely for choices.js dropdown injection strings
             if (choicesInstance && document.getElementById('sale-watch-select')) {
                 data.watch_id = document.getElementById('sale-watch-select').value;
             }
@@ -782,7 +809,8 @@
                 const watch = globalInventory.find(w => w.id == data.watch_id); if(!watch) return alert("Watch record not found!");
                 const qtySold = parseInt(data.qty); if(qtySold > watch.qty) return alert("Insufficient stock pieces available!");
 
-                const totalRevenuePrice = parseFloat(data.sell_price) * qtySold;
+                const discountAmount = parseFloat(data.discount || 0);
+                const totalRevenuePrice = (parseFloat(data.sell_price) * qtySold) - discountAmount;
                 const totalCostPrice = parseFloat(watch.buy_price) * qtySold;
                 const initialPaidAmount = parseFloat(data.paid || 0);
                 const outstandingDebtGained = totalRevenuePrice - initialPaidAmount;
@@ -813,7 +841,7 @@
                     sell_price: parseFloat(data.sell_price), buy_price: parseFloat(watch.buy_price),
                     profit: totalRevenuePrice - totalCostPrice, customer_id: calculatedCustomerId,
                     date: new Date().toLocaleDateString('en-GB') + ' ' + new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'}),
-                    payment: data.payment, paid: initialPaidAmount
+                    payment: data.payment, paid: initialPaidAmount, discount: discountAmount
                 };
 
                 await _supabase.from('inventory').update({ qty: watch.qty - qtySold }).eq('id', watch.id);
@@ -827,13 +855,17 @@
                 const cObj = globalCustomers.find(c => c.id == parseInt(data.customer_id));
                 if (cObj) await _supabase.from('customers').update({ credit: parseFloat(cObj.credit || 0) - parseFloat(data.amount_received) }).eq('id', cObj.id);
             }
-            closeModal(); loadData();
+            
+            // FIXED: Modal component closes automatically on success, and calls global load state instantly
+            closeModal(); 
+            await loadData();
         }
 
         async function confirmDeleteRecord(table, id) {
             if (currentRole !== 'owner') return alert("Access Denied.");
             if (!confirm("Are you sure you want to permanently delete this item?")) return;
-            await _supabase.from(table).delete().eq('id', id); loadData();
+            await _supabase.from(table).delete().eq('id', id); 
+            await loadData();
         }
 
         function downloadExcelBackup() {
@@ -847,8 +879,9 @@
             const excelSalesRows = globalSales.map(sale => ({
                 "Transaction Date/Time": sale.date, "Shop Origin": shopNames[sale.shop] || "Unknown", "Watch Brand": sale.brand,
                 "Watch Model": sale.model, "Quantity Sold": parseInt(sale.qty), "Client Name": findCustomerName(sale.customer_id),
-                "Unit Price Charged (KWD)": parseFloat(sale.sell_price || 0), "Total Invoice Gross (KWD)": parseFloat(sale.sell_price || 0) * parseInt(sale.qty || 1),
-                "Amount Collected Down (KWD)": parseFloat(sale.paid || 0), "Outstanding Credit Balance (KWD)": (parseFloat(sale.sell_price || 0) * parseInt(sale.qty || 1)) - parseFloat(sale.paid || 0),
+                "Unit Price Charged (KWD)": parseFloat(sale.sell_price || 0), "Total Invoice Gross (KWD)": (parseFloat(sale.sell_price || 0) * parseInt(sale.qty || 1)) - parseFloat(sale.discount || 0),
+                "Discount Applied (KWD)": parseFloat(sale.discount || 0), "Amount Collected Down (KWD)": parseFloat(sale.paid || 0), 
+                "Outstanding Credit Balance (KWD)": ((parseFloat(sale.sell_price || 0) * parseInt(sale.qty || 1)) - parseFloat(sale.discount || 0)) - parseFloat(sale.paid || 0),
                 "Net Profit Realized (KWD)": parseFloat(sale.profit || 0)
             }));
             const excelCustomerRows = globalCustomers.map(cust => ({
@@ -871,8 +904,10 @@
         function printInvoice(saleId) {
             const targetSale = globalSales.find(s => s.id == saleId); if(!targetSale) return;
             const printZone = document.getElementById('invoice-print-zone');
-            const totalInvoicePriceValue = parseFloat(targetSale.sell_price || 0) * parseInt(targetSale.qty || 1);
-            const customerOwedRemainingBalance = totalInvoicePriceValue - parseFloat(targetSale.paid || 0);
+            const grossValue = parseFloat(targetSale.sell_price || 0) * parseInt(targetSale.qty || 1);
+            const discountAmount = parseFloat(targetSale.discount || 0);
+            const netInvoiceValue = grossValue - discountAmount;
+            const customerOwedRemainingBalance = netInvoiceValue - parseFloat(targetSale.paid || 0);
 
             printZone.innerHTML = `
                 <div style="text-align: center; margin-bottom: 30px; font-family: 'Times New Roman', serif;">
@@ -899,14 +934,16 @@
                             <td style="padding: 12px 0;"><strong style="text-transform: uppercase;">${targetSale.brand}</strong> — ${targetSale.model}</td>
                             <td style="padding: 12px 0; text-align: center;">${targetSale.qty}</td>
                             <td style="padding: 12px 0; text-align: right;">${parseFloat(targetSale.sell_price).toFixed(3)} KD</td>
-                            <td style="padding: 12px 0; text-align: right;">${totalInvoicePriceValue.toFixed(3)} KD</td>
+                            <td style="padding: 12px 0; text-align: right;">${grossValue.toFixed(3)} KD</td>
                         </tr>
                     </tbody>
                 </table>
                 <div style="display: flex; justify-content: flex-end; font-size: 14px;">
                     <div style="width: 250px; line-height: 2;">
-                        <div style="display: flex; justify-content: space-between;"><span>Gross Total:</span><span>${totalInvoicePriceValue.toFixed(3)} KD</span></div>
-                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding-bottom: 4px; color: green; font-weight: bold;"><span>Paid Today:</span><span>${parseFloat(targetSale.paid || 0).toFixed(3)} KD</span></div>
+                        <div style="display: flex; justify-content: space-between;"><span>Subtotal Gross:</span><span>${grossValue.toFixed(3)} KD</span></div>
+                        ${discountAmount > 0 ? `<div style="display: flex; justify-content: space-between; color: red;"><span>Discount Given:</span><span>-${discountAmount.toFixed(3)} KD</span></div>` : ''}
+                        <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px solid #000;"><span>Net Invoice Total:</span><span>${netInvoiceValue.toFixed(3)} KD</span></div>
+                        <div style="display: flex; justify-content: space-between; color: green; font-weight: bold;"><span>Paid Amount:</span><span>${parseFloat(targetSale.paid || 0).toFixed(3)} KD</span></div>
                         <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-top: 6px; color: ${customerOwedRemainingBalance > 0 ? 'red' : 'black'}"><span>Balance Owed:</span><span>${customerOwedRemainingBalance.toFixed(3)} KD</span></div>
                     </div>
                 </div>`;
