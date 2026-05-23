@@ -255,7 +255,6 @@
         const shopNames = { "1": "Shop 1", "2": "Shop 2", "3": "Shop 3", "4": "Shop 4" };
         const PASSWORDS = { owner: "owner123", "1": "shop1pass", "2": "shop2pass", "3": "shop3pass", "4": "shop4pass" };
 
-        // FIXED: Persistent session initialization layout routing map parameter matrix
         window.addEventListener('DOMContentLoaded', () => {
             const cachedRole = sessionStorage.getItem('aw_role');
             const cachedTab = sessionStorage.getItem('aw_tab');
@@ -810,7 +809,6 @@
             document.getElementById('modal-container').classList.remove('hidden');
         }
 
-        // FIXED: Conditional dropdown cleanup logic added to cancel triggers safely
         function closeModal() { 
             if (choicesInstance) {
                 try { choicesInstance.destroy(); } catch(err){}
@@ -841,8 +839,8 @@
                     const rmbPrice = parseFloat(data.rmb_buy_price || 0);
                     const additionalQty = parseInt(data.qty || 0);
 
-                    // FIXED: Smart Merging logic looks for matching items before running inserts
-                    const existingItem = globalInventory.find(item => 
+                    const { data: currentInv } = await _supabase.from('inventory').select('*');
+                    const existingItem = (currentInv || []).find(item => 
                         item.shop === shopId && 
                         item.brand.toUpperCase() === brandName && 
                         item.model === modelName && 
@@ -867,7 +865,8 @@
 
                 } else if (currentModalTarget === 'sales') {
                     if(!data.watch_id) { alert("Please select a watch model row first!"); return; }
-                    const watch = globalInventory.find(w => w.id == data.watch_id); 
+                    const { data: updatedInv } = await _supabase.from('inventory').select('*');
+                    const watch = (updatedInv || []).find(w => w.id == data.watch_id); 
                     if(!watch) { alert("Watch record not found!"); return; }
                     const qtySold = parseInt(data.qty); 
                     if(qtySold > watch.qty) { alert("Insufficient stock pieces available!"); return; }
@@ -977,52 +976,23 @@
             const netInvoiceValue = grossValue - discountAmount;
             const customerOwedRemainingBalance = netInvoiceValue - parseFloat(targetSale.paid || 0);
 
-            // Define premium, official business headers for each specific branch
             const branchDetails = {
-                "1": {
-                    name: "Al Wadi Watches — Branch 1",
-                    location: "Sharq, Ahmed Al Jaber Street, Kuwait City",
-                    phone: "+965 2244 1111",
-                    license: "Commercial Lic: #1990/112"
-                },
-                "2": {
-                    name: "Al Wadi Watches — Branch 2",
-                    location: "Salmiya, Salem Al Mubarak Street, Kuwait",
-                    phone: "+965 2577 2222",
-                    license: "Commercial Lic: #1995/344"
-                },
-                "3": {
-                    name: "Al Wadi Watches — Branch 3",
-                    location: "The Avenues Mall, Phase 2, Rai",
-                    phone: "+965 2220 3333",
-                    license: "Commercial Lic: #2005/789"
-                },
-                "4": {
-                    name: "Al Wadi Watches — Branch 4",
-                    location: "Fahaheel, Dabbous Street, Kuwait",
-                    phone: "+965 2391 4444",
-                    license: "Commercial Lic: #2012/556"
-                }
+                "1": { name: "Al Wadi Watches — Branch 1", location: "Sharq, Ahmed Al Jaber Street, Kuwait City", phone: "+965 2244 1111", license: "Commercial Lic: #1990/112" },
+                "2": { name: "Al Wadi Watches — Branch 2", location: "Salmiya, Salem Al Mubarak Street, Kuwait", phone: "+965 2577 2222", license: "Commercial Lic: #1995/344" },
+                "3": { name: "Al Wadi Watches — Branch 3", location: "The Avenues Mall, Phase 2, Rai", phone: "+965 2220 3333", license: "Commercial Lic: #2005/789" },
+                "4": { name: "Al Wadi Watches — Branch 4", location: "Fahaheel, Dabbous Street, Kuwait", phone: "+965 2391 4444", license: "Commercial Lic: #2012/556" }
             };
 
-            // Fallback default profile if shop index is left blank
-            const activeBranch = branchDetails[targetSale.shop] || {
-                name: "Al Wadi Watches — Main Showroom",
-                location: "Kuwait City, State of Kuwait",
-                phone: "+965 2200 0000",
-                license: "Establishment 1990s"
-            };
+            const activeBranch = branchDetails[targetSale.shop] || { name: "Al Wadi Watches — Main Showroom", location: "Kuwait City, State of Kuwait", phone: "+965 2200 0000", license: "Establishment 1990s" };
 
             printZone.innerHTML = `
                 <div style="font-family: 'Times New Roman', serif; color: #000; padding: 20px; line-height: 1.6;">
-                    
                     <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid #000; padding-bottom: 15px;">
                         <h1 style="font-size: 26px; font-weight: bold; margin: 0; text-transform: uppercase; letter-spacing: 1px;">${activeBranch.name}</h1>
                         <p style="margin: 4px 0; font-size: 13px; font-style: italic; color: #333;">Luxury Timepieces & Trading</p>
                         <p style="margin: 2px 0; font-size: 12px; font-family: sans-serif;">📍 ${activeBranch.location}</p>
                         <p style="margin: 2px 0; font-size: 12px; font-family: sans-serif;">📞 Phone: ${activeBranch.phone} | ${activeBranch.license}</p>
                     </div>
-
                     <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 13px; font-family: sans-serif;">
                         <div>
                             <h3 style="font-size: 14px; font-weight: bold; margin: 0 0 5px 0; text-transform: uppercase; border-bottom: 1px solid #ddd; padding-bottom: 3px;">Invoice Summary</h3>
@@ -1035,7 +1005,6 @@
                             <strong>Client Identity:</strong> ${findCustomerName(targetSale.customer_id)}
                         </div>
                     </div>
-
                     <table style="width: 100%; border-collapse: collapse; margin-bottom: 35px; text-align: left; font-size: 13px; font-family: sans-serif;">
                         <thead>
                             <tr style="border-bottom: 2px solid #000; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">
@@ -1057,7 +1026,6 @@
                             </tr>
                         </tbody>
                     </table>
-
                     <div style="display: flex; justify-content: flex-end; font-family: sans-serif; font-size: 13px;">
                         <div style="width: 280px; line-height: 2.2;">
                             <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #ddd;">
@@ -1083,7 +1051,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div style="text-align: center; margin-top: 60px; padding-top: 15px; border-top: 1px solid #eee; font-size: 11px; font-family: sans-serif; color: #555;">
                         <p style="margin: 3px 0; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Thank you for investing with Al Wadi Watches</p>
                         <p style="margin: 2px 0;">All luxury timepieces are certified authentic. Retain this invoice certificate for your warranty logs.</p>
