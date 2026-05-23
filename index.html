@@ -479,7 +479,6 @@
             }
             dataList.forEach(sale => {
                 const baseTotal = parseFloat(sale.sell_price || 0) * parseInt(sale.qty || 1);
-                // FIXED: Factor in dynamic sales discounts
                 const discAmt = parseFloat(sale.discount || 0);
                 const finalTotal = baseTotal - discAmt;
                 const paid = parseFloat(sale.paid || 0); const diff = finalTotal - paid;
@@ -667,7 +666,7 @@
                         </div>
                     </div>
                     <div class="bg-gray-800/60 p-3 rounded border border-gray-700 space-y-3">
-                        <p class="text-xs font-bold text-yellow-500 uppercase tracking-wide">Customer Directory Target Link</p>
+                        <p class="text-xs font-bold text-yellow-500 uppercase tracking-wide">Customer Details</p>
                         <div>
                             <label class="block text-[11px] uppercase text-gray-400 mb-0.5">Customer Name</label>
                             <input type="text" name="manual_cust_name" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-white text-sm" placeholder="e.g. Faisal Al-Rashidi">
@@ -711,7 +710,6 @@
 
                     choicesInstance = new Choices(selectElement, { searchEnabled: true, itemSelectText: '', placeholder: true, placeholderValue: 'Type name to search...', shouldSort: false });
 
-                    // FIXED: Dynamic toggle calculation between Wholesale Dealer and Retail tier parameters
                     function runFormAutofillFields() {
                         const targetId = selectElement.value; if(!targetId) return;
                         const watch = globalInventory.find(w => w.id == targetId);
@@ -788,77 +786,86 @@
             document.getElementById('modal-container').classList.remove('hidden');
         }
 
+        // FIXED: COMPLETELY ISOLATED SAFETY FORM HANDLERS TO PREVENT BREAKING EXECUTIONS
         async function handleFormSubmit(e) {
-            e.preventDefault(); const formData = new FormData(e.target); const data = Object.fromEntries(formData.entries());
+            e.preventDefault(); 
+            try {
+                const formData = new FormData(e.target); 
+                const data = Object.fromEntries(formData.entries());
 
-            if (choicesInstance && document.getElementById('sale-watch-select')) {
-                data.watch_id = document.getElementById('sale-watch-select').value;
-            }
-
-            if (currentModalTarget === 'inventory') {
-                const payload = {
-                    shop: parseInt(data.shop), brand: data.brand.trim().toUpperCase(), model: data.model.trim(),
-                    qty: parseInt(data.qty), rmb_buy_price: parseFloat(data.rmb_buy_price || 0), exchange_rate: 0,
-                    buy_price: parseFloat(data.buy_price || 0), sell_price: parseFloat(data.sell_price || 0),
-                    dealer_price: parseFloat(data.dealer_price || 0), supplier_name: data.supplier_name, box: true, papers: true
-                };
-                await _supabase.from('inventory').insert([payload]);
-
-            } else if (currentModalTarget === 'sales') {
-                if(!data.watch_id) return alert("Please select a watch model row first!");
-                const watch = globalInventory.find(w => w.id == data.watch_id); if(!watch) return alert("Watch record not found!");
-                const qtySold = parseInt(data.qty); if(qtySold > watch.qty) return alert("Insufficient stock pieces available!");
-
-                const discountAmount = parseFloat(data.discount || 0);
-                const totalRevenuePrice = (parseFloat(data.sell_price) * qtySold) - discountAmount;
-                const totalCostPrice = parseFloat(watch.buy_price) * qtySold;
-                const initialPaidAmount = parseFloat(data.paid || 0);
-                const outstandingDebtGained = totalRevenuePrice - initialPaidAmount;
-
-                let calculatedCustomerId = null;
-
-                if (data.manual_cust_name && data.manual_cust_name.trim() !== '') {
-                    const cleanName = data.manual_cust_name.trim();
-                    const cleanPhone = data.manual_cust_phone ? data.manual_cust_phone.trim() : '';
-                    let existingCust = globalCustomers.find(c => c.name.toLowerCase() === cleanName.toLowerCase());
-                    
-                    if (existingCust) {
-                        calculatedCustomerId = existingCust.id;
-                        const updatedCredit = parseFloat(existingCust.credit || 0) + outstandingDebtGained;
-                        const updatedCount = parseInt(existingCust.paid || 0) + 1;
-                        await _supabase.from('customers').update({ credit: updatedCredit, paid: updatedCount }).eq('id', existingCust.id);
-                    } else {
-                        const newCustRes = await _supabase.from('customers').insert([{
-                            name: cleanName, phone: cleanPhone, type: data.manual_cust_type, shop: parseInt(data.shop),
-                            notes: 'Created on invoice checkout', credit: outstandingDebtGained, paid: 1
-                        }]).select();
-                        if (newCustRes.data && newCustRes.data.length > 0) calculatedCustomerId = newCustRes.data[0].id;
-                    }
+                if (choicesInstance && document.getElementById('sale-watch-select')) {
+                    data.watch_id = document.getElementById('sale-watch-select').value;
                 }
 
-                const salePayload = {
-                    shop: parseInt(data.shop), brand: watch.brand, model: watch.model, qty: qtySold,
-                    sell_price: parseFloat(data.sell_price), buy_price: parseFloat(watch.buy_price),
-                    profit: totalRevenuePrice - totalCostPrice, customer_id: calculatedCustomerId,
-                    date: new Date().toLocaleDateString('en-GB') + ' ' + new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'}),
-                    payment: data.payment, paid: initialPaidAmount, discount: discountAmount
-                };
+                if (currentModalTarget === 'inventory') {
+                    const payload = {
+                        shop: parseInt(data.shop), brand: data.brand.trim().toUpperCase(), model: data.model.trim(),
+                        qty: parseInt(data.qty), rmb_buy_price: parseFloat(data.rmb_buy_price || 0), exchange_rate: 0,
+                        buy_price: parseFloat(data.buy_price || 0), sell_price: parseFloat(data.sell_price || 0),
+                        dealer_price: parseFloat(data.dealer_price || 0), supplier_name: data.supplier_name, box: true, papers: true
+                    };
+                    await _supabase.from('inventory').insert([payload]);
 
-                await _supabase.from('inventory').update({ qty: watch.qty - qtySold }).eq('id', watch.id);
-                await _supabase.from('sales').insert([salePayload]);
+                } else if (currentModalTarget === 'sales') {
+                    if(!data.watch_id) { alert("Please select a watch model row first!"); return; }
+                    const watch = globalInventory.find(w => w.id == data.watch_id); 
+                    if(!watch) { alert("Watch record not found!"); return; }
+                    const qtySold = parseInt(data.qty); 
+                    if(qtySold > watch.qty) { alert("Insufficient stock pieces available!"); return; }
 
-            } else if (currentModalTarget === 'customers') {
-                await _supabase.from('customers').insert([{ name: data.name.trim(), phone: data.phone.trim(), type: data.type, shop: parseInt(data.shop), notes: data.notes.trim(), credit: 0, paid: 0 }]);
-            } else if (currentModalTarget === 'suppliers') {
-                await _supabase.from('suppliers').insert([{ name: data.name.trim(), contact: data.contact.trim(), phone: data.phone.trim(), email: data.email.trim(), country: data.country.trim(), outstanding: 0, total_purchases: 0 }]);
-            } else if (currentModalTarget === 'collect_payment') {
-                const cObj = globalCustomers.find(c => c.id == parseInt(data.customer_id));
-                if (cObj) await _supabase.from('customers').update({ credit: parseFloat(cObj.credit || 0) - parseFloat(data.amount_received) }).eq('id', cObj.id);
+                    const discountAmount = parseFloat(data.discount || 0);
+                    const totalRevenuePrice = (parseFloat(data.sell_price) * qtySold) - discountAmount;
+                    const totalCostPrice = parseFloat(watch.buy_price) * qtySold;
+                    const initialPaidAmount = parseFloat(data.paid || 0);
+                    const outstandingDebtGained = totalRevenuePrice - initialPaidAmount;
+
+                    let calculatedCustomerId = null;
+
+                    if (data.manual_cust_name && data.manual_cust_name.trim() !== '') {
+                        const cleanName = data.manual_cust_name.trim();
+                        const cleanPhone = data.manual_cust_phone ? data.manual_cust_phone.trim() : '';
+                        let existingCust = globalCustomers.find(c => c.name.toLowerCase() === cleanName.toLowerCase());
+                        
+                        if (existingCust) {
+                            calculatedCustomerId = existingCust.id;
+                            const updatedCredit = parseFloat(existingCust.credit || 0) + outstandingDebtGained;
+                            const updatedCount = parseInt(existingCust.paid || 0) + 1;
+                            await _supabase.from('customers').update({ credit: updatedCredit, paid: updatedCount }).eq('id', existingCust.id);
+                        } else {
+                            const newCustRes = await _supabase.from('customers').insert([{
+                                name: cleanName, phone: cleanPhone, type: data.manual_cust_type, shop: parseInt(data.shop),
+                                notes: 'Created on invoice checkout', credit: outstandingDebtGained, paid: 1
+                            }]).select();
+                            if (newCustRes.data && newCustRes.data.length > 0) calculatedCustomerId = newCustRes.data[0].id;
+                        }
+                    }
+
+                    const salePayload = {
+                        shop: parseInt(data.shop), brand: watch.brand, model: watch.model, qty: qtySold,
+                        sell_price: parseFloat(data.sell_price), buy_price: parseFloat(watch.buy_price),
+                        profit: totalRevenuePrice - totalCostPrice, customer_id: calculatedCustomerId,
+                        date: new Date().toLocaleDateString('en-GB') + ' ' + new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'}),
+                        payment: data.payment, paid: initialPaidAmount, discount: discountAmount
+                    };
+
+                    await _supabase.from('inventory').update({ qty: watch.qty - qtySold }).eq('id', watch.id);
+                    await _supabase.from('sales').insert([salePayload]);
+
+                } else if (currentModalTarget === 'customers') {
+                    await _supabase.from('customers').insert([{ name: data.name.trim(), phone: data.phone.trim(), type: data.type, shop: parseInt(data.shop), notes: data.notes.trim(), credit: 0, paid: 0 }]);
+                } else if (currentModalTarget === 'suppliers') {
+                    await _supabase.from('suppliers').insert([{ name: data.name.trim(), contact: data.contact.trim(), phone: data.phone.trim(), email: data.email.trim(), country: data.country.trim(), outstanding: 0, total_purchases: 0 }]);
+                } else if (currentModalTarget === 'collect_payment') {
+                    const cObj = globalCustomers.find(c => c.id == parseInt(data.customer_id));
+                    if (cObj) await _supabase.from('customers').update({ credit: parseFloat(cObj.credit || 0) - parseFloat(data.amount_received) }).eq('id', cObj.id);
+                }
+
+                closeModal(); 
+                await loadData();
+            } catch (error) {
+                console.error("Submission Error intercepted: ", error);
+                closeModal();
             }
-            
-            // FIXED: Modal component closes automatically on success, and calls global load state instantly
-            closeModal(); 
-            await loadData();
         }
 
         async function confirmDeleteRecord(table, id) {
