@@ -222,10 +222,10 @@
         <div class="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden">
             <div class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex justify-between items-center">
                 <h3 id="modal-title" class="text-lg font-bold text-yellow-500">Data Form Entry</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-white text-xl font-bold focus:outline-none cursor-pointer">&times;</button>
+                <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-white text-xl font-bold focus:outline-none cursor-pointer">&times;</button>
             </div>
             <div class="p-6 max-h-[75vh] overflow-y-auto">
-                <form id="data-form" onsubmit="handleFormSubmit(event); document.getElementById('modal-container').classList.add('hidden');" class="space-y-4 text-gray-300">
+                <form id="data-form" onsubmit="handleFormSubmit(event);" class="space-y-4 text-gray-300">
                     <div id="form-fields" class="space-y-4"></div>
                     <div class="flex justify-end gap-3 pt-4 border-t border-gray-800">
                         <button type="button" onclick="closeModal()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-4 py-2 rounded text-sm transition cursor-pointer">Cancel</button>
@@ -255,6 +255,23 @@
         const shopNames = { "1": "Shop 1", "2": "Shop 2", "3": "Shop 3", "4": "Shop 4" };
         const PASSWORDS = { owner: "owner123", "1": "shop1pass", "2": "shop2pass", "3": "shop3pass", "4": "shop4pass" };
 
+        // FIXED: Persistent session initialization layout routing map parameter matrix
+        window.addEventListener('DOMContentLoaded', () => {
+            const cachedRole = sessionStorage.getItem('aw_role');
+            const cachedTab = sessionStorage.getItem('aw_tab');
+            if (cachedRole) {
+                currentRole = cachedRole;
+                currentShop = (cachedRole === 'owner') ? 'all' : cachedRole;
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-screen').classList.remove('hidden');
+                setupRolePermissions();
+                initRealtimeSync();
+                if(cachedTab) activeTab = cachedTab;
+                switchTab(activeTab);
+                loadData();
+            }
+        });
+
         function findCustomerName(id) {
             if (!id || !globalCustomers) return 'Walking Retail Customer';
             const found = globalCustomers.find(c => c.id == id);
@@ -270,6 +287,10 @@
                 err.classList.add('hidden');
                 currentRole = role;
                 currentShop = (role === 'owner') ? 'all' : role;
+                
+                sessionStorage.setItem('aw_role', role);
+                sessionStorage.setItem('aw_tab', 'dashboard');
+
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('app-screen').classList.remove('hidden');
                 setupRolePermissions();
@@ -282,6 +303,7 @@
 
         function handleLogout() {
             currentRole = null; currentShop = null;
+            sessionStorage.clear();
             document.getElementById('app-screen').classList.add('hidden');
             document.getElementById('login-screen').classList.remove('hidden');
             document.getElementById('login-pass').value = '';
@@ -305,19 +327,21 @@
                 document.getElementById('owner-shop-filter').value = currentRole;
                 currentShop = currentRole;
             }
-            switchTab('dashboard');
         }
 
         function switchTab(tabId) {
             activeTab = tabId;
+            sessionStorage.setItem('aw_tab', tabId);
             ['dashboard', 'inventory', 'sales', 'customers', 'suppliers'].forEach(t => {
                 const view = document.getElementById(`view-${t}`);
                 const btn = document.getElementById(`tab-${t}`);
                 if(view) view.classList.add('hidden');
                 if(btn) { btn.classList.remove('border-yellow-500', 'text-yellow-500'); btn.classList.add('border-transparent', 'text-gray-400'); }
             });
-            document.getElementById(`view-${tabId}`).classList.remove('hidden');
-            document.getElementById(`tab-${tabId}`).classList.add('border-yellow-500', 'text-yellow-500');
+            const targetedView = document.getElementById(`view-${tabId}`);
+            if(targetedView) targetedView.classList.remove('hidden');
+            const targetedBtn = document.getElementById(`tab-${tabId}`);
+            if(targetedBtn) targetedBtn.classList.add('border-yellow-500', 'text-yellow-500');
         }
 
         function initRealtimeSync() {
@@ -786,7 +810,16 @@
             document.getElementById('modal-container').classList.remove('hidden');
         }
 
-        // FIXED: COMPLETELY ISOLATED SAFETY FORM HANDLERS TO PREVENT BREAKING EXECUTIONS
+        // FIXED: Conditional dropdown cleanup logic added to cancel triggers safely
+        function closeModal() { 
+            if (choicesInstance) {
+                try { choicesInstance.destroy(); } catch(err){}
+                choicesInstance = null; 
+            }
+            document.getElementById('modal-container').classList.add('hidden'); 
+            document.getElementById('data-form').reset(); 
+        }
+
         async function handleFormSubmit(e) {
             e.preventDefault(); 
             try {
@@ -798,13 +831,39 @@
                 }
 
                 if (currentModalTarget === 'inventory') {
-                    const payload = {
-                        shop: parseInt(data.shop), brand: data.brand.trim().toUpperCase(), model: data.model.trim(),
-                        qty: parseInt(data.qty), rmb_buy_price: parseFloat(data.rmb_buy_price || 0), exchange_rate: 0,
-                        buy_price: parseFloat(data.buy_price || 0), sell_price: parseFloat(data.sell_price || 0),
-                        dealer_price: parseFloat(data.dealer_price || 0), supplier_name: data.supplier_name, box: true, papers: true
-                    };
-                    await _supabase.from('inventory').insert([payload]);
+                    const shopId = parseInt(data.shop);
+                    const brandName = data.brand.trim().toUpperCase();
+                    const modelName = data.model.trim();
+                    const supplierName = data.supplier_name;
+                    const bPrice = parseFloat(data.buy_price || 0);
+                    const sPrice = parseFloat(data.sell_price || 0);
+                    const dPrice = parseFloat(data.dealer_price || 0);
+                    const rmbPrice = parseFloat(data.rmb_buy_price || 0);
+                    const additionalQty = parseInt(data.qty || 0);
+
+                    // FIXED: Smart Merging logic looks for matching items before running inserts
+                    const existingItem = globalInventory.find(item => 
+                        item.shop === shopId && 
+                        item.brand.toUpperCase() === brandName && 
+                        item.model === modelName && 
+                        item.supplier_name === supplierName &&
+                        parseFloat(item.buy_price || 0).toFixed(3) === bPrice.toFixed(3) &&
+                        parseFloat(item.sell_price || 0).toFixed(3) === sPrice.toFixed(3) &&
+                        parseFloat(item.dealer_price || 0).toFixed(3) === dPrice.toFixed(3)
+                    );
+
+                    if (existingItem) {
+                        const updatedQty = parseInt(existingItem.qty || 0) + additionalQty;
+                        await _supabase.from('inventory').update({ qty: updatedQty }).eq('id', existingItem.id);
+                    } else {
+                        const payload = {
+                            shop: shopId, brand: brandName, model: modelName, qty: additionalQty, 
+                            rmb_buy_price: rmbPrice, exchange_rate: 0, buy_price: bPrice, 
+                            sell_price: sPrice, dealer_price: dPrice, supplier_name: supplierName, 
+                            box: true, papers: true
+                        };
+                        await _supabase.from('inventory').insert([payload]);
+                    }
 
                 } else if (currentModalTarget === 'sales') {
                     if(!data.watch_id) { alert("Please select a watch model row first!"); return; }
@@ -861,10 +920,12 @@
                 }
 
                 closeModal(); 
+                document.getElementById('modal-container').classList.add('hidden');
                 await loadData();
             } catch (error) {
                 console.error("Submission Error intercepted: ", error);
                 closeModal();
+                document.getElementById('modal-container').classList.add('hidden');
             }
         }
 
