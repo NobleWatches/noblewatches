@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Noble Watches Management System</title>
+    <title>Al Wadi Watches Management System</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -566,7 +566,7 @@
                     </select>
                 </div>` : `<input type="hidden" name="shop" value="${currentRole}">`;
 
-           if (target === 'inventory') {
+            if (target === 'inventory') {
                 title.textContent = "New Stock Piece Injection Entry";
                 let supplierDropdownOptions = `<option value="Direct Import">-- Direct Import (No Listed Supplier) --</option>` + 
                     globalSuppliers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
@@ -583,7 +583,6 @@
                             <input type="text" name="model" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" required placeholder="e.g. Datejust 41 Blue Diamond">
                         </div>
                     </div>
-                    
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Purchase Price Per Piece (China RMB ¥)</label>
@@ -594,11 +593,10 @@
                             <input type="number" step="0.001" name="buy_price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm text-emerald-400 font-bold" required placeholder="0.000">
                         </div>
                     </div>
-
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Total Quantity (Total Pieces Received)</label>
-                            <input type="number" name="qty" min="1" value="1" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required placeholder="e.g. 100">
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Total Quantity Pieces</label>
+                            <input type="number" name="qty" min="1" value="1" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required>
                         </div>
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Linked Factory Supplier</label>
@@ -607,14 +605,13 @@
                             </select>
                         </div>
                     </div>
-
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Retail Price Per Piece (KWD)</label>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Retail Target Price Per Piece (KWD)</label>
                             <input type="number" step="0.001" name="sell_price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold text-sky-400" required placeholder="0.000">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Dealer Price Per Piece (KWD)</label>
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Dealer Wholesale Price Per Piece (KWD)</label>
                             <input type="number" step="0.001" name="dealer_price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold text-purple-400" required placeholder="0.000">
                         </div>
                     </div>`;
@@ -761,31 +758,15 @@
             document.getElementById('modal-container').classList.remove('hidden');
         }
 
-        function closeModal() { 
-            if(choicesInstance) { choicesInstance.destroy(); choicesInstance = null; }
-            document.getElementById('modal-container').classList.add('hidden'); 
-            document.getElementById('data-form').reset(); 
-        }
-
-        function openPaymentCollectionModal(customerId) {
-            const cust = globalCustomers.find(c => c.id == customerId); if(!cust) return;
-            currentModalTarget = 'collect_payment'; const fields = document.getElementById('form-fields');
-            document.getElementById('modal-title').textContent = `Receive Payment: ${cust.name}`;
-            fields.innerHTML = `
-                <input type="hidden" name="customer_id" value="${cust.id}">
-                <div class="bg-gray-800 p-4 rounded border border-gray-700 text-center">
-                    <p class="text-xs text-gray-400 uppercase font-bold">Current Active Balance Owed</p>
-                    <p class="text-2xl font-bold text-red-400 mt-1">${parseFloat(cust.credit || 0).toFixed(3)} KD</p>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Amount Received (KD)</label>
-                    <input type="number" step="0.001" name="amount_received" min="0.001" max="${cust.credit}" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-xl font-bold text-emerald-400 text-center" required>
-                </div>`;
-            document.getElementById('modal-container').classList.remove('hidden');
-        }
-
         async function handleFormSubmit(e) {
-            e.preventDefault(); const formData = new FormData(e.target); const data = Object.fromEntries(formData.entries());
+            e.preventDefault(); 
+            const formData = new FormData(e.target); 
+            const data = Object.fromEntries(formData.entries());
+
+            // FIXED: Handle field matching safely for choices.js dropdown injection strings
+            if (choicesInstance && document.getElementById('sale-watch-select')) {
+                data.watch_id = document.getElementById('sale-watch-select').value;
+            }
 
             if (currentModalTarget === 'inventory') {
                 const payload = {
@@ -797,8 +778,9 @@
                 await _supabase.from('inventory').insert([payload]);
 
             } else if (currentModalTarget === 'sales') {
-                const watch = globalInventory.find(w => w.id == data.watch_id); if(!watch) return;
-                const qtySold = parseInt(data.qty); if(qtySold > watch.qty) return alert("Insufficient stock pieces!");
+                if(!data.watch_id) return alert("Please select a watch model row first!");
+                const watch = globalInventory.find(w => w.id == data.watch_id); if(!watch) return alert("Watch record not found!");
+                const qtySold = parseInt(data.qty); if(qtySold > watch.qty) return alert("Insufficient stock pieces available!");
 
                 const totalRevenuePrice = parseFloat(data.sell_price) * qtySold;
                 const totalCostPrice = parseFloat(watch.buy_price) * qtySold;
