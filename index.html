@@ -225,7 +225,7 @@
                 <button onclick="closeModal()" class="text-gray-400 hover:text-white text-xl font-bold focus:outline-none cursor-pointer">&times;</button>
             </div>
             <div class="p-6 max-h-[75vh] overflow-y-auto">
-                <form id="data-form" onsubmit="handleFormSubmit(event)" class="space-y-4 text-gray-300">
+                <form id="data-form" onsubmit="handleFormSubmit(event); document.getElementById('modal-container').classList.add('hidden');" class="space-y-4 text-gray-300">
                     <div id="form-fields" class="space-y-4"></div>
                     <div class="flex justify-end gap-3 pt-4 border-t border-gray-800">
                         <button type="button" onclick="closeModal()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-4 py-2 rounded text-sm transition cursor-pointer">Cancel</button>
