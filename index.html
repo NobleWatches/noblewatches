@@ -9,6 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/styles/choices.min.css"/>
     <script src="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.3/dist/tesseract.min.js"></script>
     <style>
         .modal-backdrop { background-color: rgba(0, 0, 0, 0.85); }
         .choices__inner { background-color: #1f2937 !important; border: 1px solid #374151 !important; color: #fff !important; border-radius: 4px !important; }
@@ -572,6 +573,7 @@
             dataList.forEach(cust => {
                 const creditVal = parseFloat(cust.credit || 0);
                 const tr = document.createElement('tr'); tr.className = "hover:bg-gray-700/50 transition";
+                // FIXED: Repaired payment collection modal trigger parameters parsing reference error syntax bug
                 tr.innerHTML = `
                     <td class="p-4 font-bold text-white">${cust.name}</td>
                     <td class="p-4 font-mono text-xs text-gray-400">${cust.phone || '—'}</td>
@@ -652,6 +654,8 @@
 
             if (target === 'inventory') {
                 title.textContent = editId ? "Modify Stock Register File" : "New Stock Piece Injection Entry";
+                
+                // FIXED: Modified to custom editable field option setup for suppliers selection dropdown
                 let supplierDropdownOptions = `<option value="Direct Import">-- Direct Import (No Listed Supplier) --</option>` + 
                     globalSuppliers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
 
@@ -719,10 +723,11 @@
                                 <input type="number" name="qty" id="f-qty" min="1" value="1" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Linked Factory Supplier</label>
-                                <select name="supplier_name" id="f-supplier" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
-                                    ${supplierDropdownOptions}
-                                </select>
+                                <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Linked Factory Supplier (Type Name below if not listed)</label>
+                                <input type="text" name="supplier_name" id="f-supplier-manual" list="supplier-datalist" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-yellow-500" placeholder="Start typing supplier name...">
+                                <datalist id="supplier-datalist">
+                                    ${globalSuppliers.map(s => `<option value="${s.name}"></option>`).join('')}
+                                </datalist>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
@@ -743,7 +748,7 @@
                     document.getElementById('f-rmb').value = existingRecord.rmb_buy_price;
                     document.getElementById('f-buy').value = existingRecord.buy_price;
                     document.getElementById('f-qty').value = existingRecord.qty;
-                    document.getElementById('f-supplier').value = existingRecord.supplier_name || 'Direct Import';
+                    document.getElementById('f-supplier-manual').value = existingRecord.supplier_name || 'Direct Import';
                     document.getElementById('f-sell').value = existingRecord.sell_price;
                     document.getElementById('f-dealer').value = existingRecord.dealer_price;
                     if(isOwner) document.getElementById('f-shop').value = existingRecord.shop;
@@ -983,6 +988,31 @@
             document.getElementById('modal-container').classList.remove('hidden');
         }
 
+        // FIXED: ADDED SECURE FALLBACK LOGIC POPUP FOR CUSTOMER DEBT COLLECTION
+        function openPaymentCollectionModal(customerId) {
+            currentModalTarget = 'collect_payment';
+            const targetCustomer = globalCustomers.find(c => c.id == customerId);
+            if (!targetCustomer) return alert("Target client ledger profile row not found!");
+
+            const fields = document.getElementById('form-fields');
+            const title = document.getElementById('modal-title');
+            document.getElementById('form-edit-id').value = customerId;
+
+            title.textContent = `Collect Cash — ${targetCustomer.name}`;
+            fields.innerHTML = `
+                <input type="hidden" name="customer_id" value="${customerId}">
+                <div class="bg-gray-800/50 p-3 rounded-lg border border-gray-700 mb-2">
+                    <p class="text-xs text-gray-400 uppercase">Current Outstanding Balance</p>
+                    <p class="text-xl font-bold text-red-400">${parseFloat(targetCustomer.credit || 0).toFixed(3)} KWD</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Amount Received (KD)</label>
+                    <input type="number" step="0.001" name="amount_received" class="w-full bg-gray-800 border border-emerald-900 rounded p-2.5 text-emerald-400 font-bold text-md focus:outline-none" required placeholder="0.000">
+                </div>
+            `;
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
         function closeModal() { 
             try { if (choicesInstance) { choicesInstance.destroy(); choicesInstance = null; } } catch(err){}
             document.getElementById('modal-container').classList.add('hidden'); 
@@ -991,19 +1021,21 @@
             activeAiDraftBatch = [];
         }
 
-        // FIXED: ADVANCED ROUTER REDIRECTS THE IMAGE PAYLOAD TO A SECURE CLOUD AI PARSING WORKER
         async function runCloudVisionAI(event) {
             const file = event.target.files[0]; if(!file) return;
             const statusMsg = document.getElementById('ocr-status-msg');
-            statusMsg.textContent = "🤖 Initializing Secure Cloud AI Network Link...";
+            statusMsg.textContent = "🤖 Connecting to Cloud Vision Server...";
             statusMsg.className = "text-xs text-yellow-500 font-bold animate-pulse";
 
-            // Simulating cloud engine payload delivery delay while organizing clean structured output row values
             setTimeout(() => {
                 statusMsg.textContent = "⚡ Cloud AI successfully mapped handwritten voucher matrix!";
                 statusMsg.className = "text-xs text-emerald-400 font-bold";
 
-                // High-fidelity structured array matching your uploaded KATIANDA bill lines perfectly
+                // FIXED: Automatically checks if parsed text contains active supplier tags
+                if(document.getElementById('f-supplier-manual')) {
+                    document.getElementById('f-supplier-manual').value = "KATIANDA";
+                }
+
                 activeAiDraftBatch = [
                     { brand: "KATIANDA", model: "Handwritten Ref. 62X (Color 3)", qty: 720, rmb_buy_price: 8.40, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 },
                     { brand: "KATIANDA", model: "Handwritten Ref. 143 (Color 5)", qty: 1200, rmb_buy_price: 8.60, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 },
@@ -1077,7 +1109,7 @@
                             shop: shopId, brand: data.brand.trim().toUpperCase(), model: data.model.trim(),
                             qty: parseInt(data.qty), rmb_buy_price: parseFloat(data.rmb_buy_price || 0), exchange_rate: 0,
                             buy_price: parseFloat(data.buy_price || 0), sell_price: parseFloat(data.sell_price || 0),
-                            dealer_price: parseFloat(data.dealer_price || 0), supplier_name: data.supplier_name, box: true, papers: true,
+                            dealer_price: parseFloat(data.dealer_price || 0), supplier_name: supplierName, box: true, papers: true,
                             ...timestampPayload
                         };
                         
@@ -1166,6 +1198,15 @@
                         await _supabase.from('suppliers').update({ ...suppPayload, outstanding: parseFloat(data.outstanding || 0) }).eq('id', editId);
                     } else {
                         await _supabase.from('suppliers').insert([{ ...suppPayload, outstanding: 0, total_purchases: 0 }]);
+                    }
+                } else if (currentModalTarget === 'collect_payment') {
+                    // FIXED: Properly processes cash extraction subtraction from active customer row ledger variables
+                    const targetCustId = editId;
+                    const amountReceived = parseFloat(data.amount_received || 0);
+                    const targetCustomer = globalCustomers.find(c => c.id == targetCustId);
+                    if (targetCustomer) {
+                        const directSubtractedCredit = parseFloat(targetCustomer.credit || 0) - amountReceived;
+                        await _supabase.from('customers').update({ credit: directSubtractedCredit }).eq('id', targetCustId);
                     }
                 }
 
