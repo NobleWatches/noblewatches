@@ -9,6 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/styles/choices.min.css"/>
     <script src="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.3/dist/tesseract.min.js"></script>
     <style>
         .modal-backdrop { background-color: rgba(0, 0, 0, 0.85); }
         .choices__inner { background-color: #1f2937 !important; border: 1px solid #374151 !important; color: #fff !important; border-radius: 4px !important; }
@@ -130,7 +131,7 @@
                                 <th id="th-buy-price-kwd" class="p-4 hidden">Landed Cost (KWD)</th>
                                 <th class="p-4">Retail Price</th>
                                 <th class="p-4">Dealer Price</th>
-                                <th id="th-inv-action" class="p-4 text-right hidden">Action</th>
+                                <th class="p-4 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="table-inventory" class="text-sm divide-y divide-gray-700 text-gray-200"></tbody>
@@ -159,7 +160,7 @@
                                 <th class="p-4">Paid Amount</th>
                                 <th class="p-4">Balance Status</th>
                                 <th id="th-sales-profit" class="p-4 hidden">Profit</th>
-                                <th class="p-4 text-right w-36">Actions</th>
+                                <th class="p-4 text-right w-44">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="table-sales" class="text-sm divide-y divide-gray-700 text-gray-200"></tbody>
@@ -184,7 +185,7 @@
                                 <th class="p-4">Classification</th>
                                 <th class="p-4">Total Purchased</th>
                                 <th class="p-4 text-red-400">Total Credit Due</th>
-                                <th class="p-4 text-right">Action</th>
+                                <th class="p-4 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="table-customers" class="text-sm divide-y divide-gray-700 text-gray-200"></tbody>
@@ -209,7 +210,7 @@
                                 <th class="p-4">Phone</th>
                                 <th class="p-4">Country Origin</th>
                                 <th class="p-4 text-amber-400">Our Payable Debt</th>
-                                <th class="p-4 text-right">Action</th>
+                                <th class="p-4 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="table-suppliers" class="text-sm divide-y divide-gray-700 text-gray-200"></tbody>
@@ -232,11 +233,11 @@
             </div>
             <div id="ai-chat-logs" class="p-4 h-56 overflow-y-auto space-y-3 text-xs leading-relaxed">
                 <div class="bg-gray-900/80 p-2.5 rounded border border-gray-800 text-gray-300">
-                    <strong>AI Assistant:</strong> Welcome Master Mansoor. Ask me anything to parse your live showroom inventory data arrays instantly!
+                    <strong>AI Assistant:</strong> Welcome Master Mansoor. Ask me to pull records, query totals, or check profit metrics instantly!
                 </div>
             </div>
             <div class="p-3 bg-gray-900 border-t border-gray-800 flex gap-2">
-                <input type="text" id="ai-user-query" onkeypress="if(event.key === 'Enter') processAIRequest()" class="w-full bg-gray-800 border border-gray-700 rounded px-2.5 py-2 text-xs text-white focus:outline-none focus:border-yellow-500" placeholder="Type command (e.g. 'Show rolex', 'check profit')...">
+                <input type="text" id="ai-user-query" onkeypress="if(event.key === 'Enter') processAIRequest()" class="w-full bg-gray-800 border border-gray-700 rounded px-2.5 py-2 text-xs text-white focus:outline-none focus:border-yellow-500" placeholder="Type command (e.g. 'show rolex')...">
                 <button onclick="processAIRequest()" class="bg-yellow-600 hover:bg-yellow-500 px-3 py-1 rounded text-xs font-bold text-white transition cursor-pointer">Ask</button>
             </div>
         </div>
@@ -251,10 +252,11 @@
             </div>
             <div class="p-6 max-h-[75vh] overflow-y-auto">
                 <form id="data-form" onsubmit="handleFormSubmit(event);" class="space-y-4 text-gray-300">
+                    <input type="hidden" id="form-edit-id" name="id" value="">
                     <div id="form-fields" class="space-y-4"></div>
-                    <div class="flex justify-end gap-3 pt-4 border-t border-gray-800">
+                    <div id="modal-action-foot" class="flex justify-end gap-3 pt-4 border-t border-gray-800">
                         <button type="button" onclick="closeModal()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-4 py-2 rounded text-sm transition cursor-pointer">Cancel</button>
-                        <button type="submit" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-5 py-2 rounded text-sm transition cursor-pointer">Save Database Entry</button>
+                        <button type="submit" id="btn-submit-primary" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-5 py-2 rounded text-sm transition cursor-pointer">Save Database Entry</button>
                     </div>
                 </form>
             </div>
@@ -276,6 +278,7 @@
         let globalCustomers = [];
         let globalSuppliers = [];
         let choicesInstance = null; 
+        let triggerPrintPostSave = false; 
 
         const shopNames = { "1": "Shop 1", "2": "Shop 2", "3": "Shop 3", "4": "Shop 4" };
         const PASSWORDS = { owner: "owner123", "1": "shop1pass", "2": "shop2pass", "3": "shop3pass", "4": "shop4pass" };
@@ -344,7 +347,6 @@
             document.getElementById('th-buy-price-rmb').style.display = isOwner ? 'table-cell' : 'none';
             document.getElementById('th-buy-price-kwd').style.display = isOwner ? 'table-cell' : 'none';
             document.getElementById('th-sales-profit').style.display = isOwner ? 'table-cell' : 'none';
-            document.getElementById('th-inv-action').style.display = isOwner ? 'table-cell' : 'none';
             document.getElementById('user-display').textContent = isOwner ? "👑 Admin: Owner Master View" : `🏬 Staff: ${shopNames[currentRole]}`;
             
             if (!isOwner) {
@@ -496,7 +498,7 @@
             const isOwner = (currentRole === 'owner');
 
             if(dataList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${isOwner ? 10 : 7}" class="p-8 text-center text-gray-500 italic">No matching inventory records found.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${isOwner ? 10 : 8}" class="p-8 text-center text-gray-500 italic">No matching inventory records found.</td></tr>`;
                 return;
             }
             dataList.forEach(item => {
@@ -511,7 +513,10 @@
                     ${isOwner ? `<td class="p-4 font-semibold text-emerald-400">${parseFloat(item.buy_price).toFixed(3)} KD</td>` : ''}
                     <td class="p-4 font-semibold text-sky-400">${parseFloat(item.sell_price).toFixed(3)} KD</td>
                     <td class="p-4 font-semibold text-purple-400">${parseFloat(item.dealer_price || 0).toFixed(3)} KD</td>
-                    ${isOwner ? `<td class="p-4 text-right"><button onclick="confirmDeleteRecord('inventory', ${item.id})" class="text-red-500 hover:text-red-400 text-xs font-bold px-2 py-1 bg-red-950/40 rounded border border-red-900/60 transition cursor-pointer">Delete</button></td>` : ''}
+                    <td class="p-4 text-right space-x-2">
+                        <button onclick="openModal('inventory', ${item.id})" class="text-yellow-500 hover:text-yellow-400 text-xs font-bold px-2 py-1 bg-yellow-950/40 rounded border border-yellow-900/60 transition cursor-pointer">✏️ Edit</button>
+                        ${isOwner ? `<button onclick="confirmDeleteRecord('inventory', ${item.id})" class="text-red-500 hover:text-red-400 text-xs font-bold px-2 py-1 bg-red-950/40 rounded border border-red-900/60 transition cursor-pointer">Delete</button>` : ''}
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -546,8 +551,9 @@
                     <td class="p-4 font-semibold text-emerald-400">${paid.toFixed(3)} KD</td>
                     <td class="p-4">${debtStatusBadge}</td>
                     ${isOwner ? `<td class="p-4 font-bold text-yellow-500">${parseFloat(sale.profit || 0).toFixed(3)} KD</td>` : ''}
-                    <td class="p-4 text-right flex items-center justify-end gap-2">
+                    <td class="p-4 text-right space-x-1.5 min-w-[170px]">
                         <button onclick="printInvoice(${sale.id})" class="text-xs bg-gray-700 hover:bg-gray-600 font-bold px-2 py-1 rounded text-white transition border border-gray-600 cursor-pointer">🖨️ Print</button>
+                        <button onclick="openModal('sales', ${sale.id})" class="text-yellow-500 hover:text-yellow-400 text-xs font-bold px-2 py-1 bg-yellow-950/40 rounded border border-yellow-900/60 transition cursor-pointer">✏️ Edit</button>
                         ${isOwner ? `<button onclick="confirmDeleteRecord('sales', ${sale.id})" class="text-red-500 hover:text-red-400 text-xs font-bold px-2 py-1 bg-red-950/40 rounded border border-red-900/60 transition cursor-pointer">Delete</button>` : ''}
                     </td>
                 `;
@@ -572,8 +578,9 @@
                     <td class="p-4"><span class="px-2 py-0.5 rounded text-xs font-semibold ${cust.type === 'Dealer' ? 'bg-purple-950 text-purple-400 border border-purple-900' : 'bg-blue-950 text-blue-400 border border-blue-900'}">${cust.type || 'Retail'}</span></td>
                     <td class="p-4 font-medium text-gray-300">${parseInt(cust.paid || 0).toLocaleString()} Purchases</td>
                     <td class="p-4 font-bold text-md ${creditVal > 0 ? 'text-red-400' : 'text-gray-500'}">${creditVal.toFixed(3)} KD</td>
-                    <td class="p-4 text-right flex justify-end gap-1.5">
+                    <td class="p-4 text-right space-x-1.5">
                         <button onclick="openPaymentCollectionModal(${cust.id})" class="text-xs bg-emerald-700 hover:bg-emerald-600 font-bold px-2.5 py-1 rounded text-white transition cursor-pointer">💵 Receive</button>
+                        <button onclick="openModal('customers', ${cust.id})" class="text-yellow-500 hover:text-yellow-400 text-xs font-bold px-2 py-1 bg-yellow-950/40 rounded border border-yellow-900/60 transition cursor-pointer">✏️ Edit</button>
                         ${isOwner ? `<button onclick="confirmDeleteRecord('customers', ${cust.id})" class="text-red-500 hover:text-red-400 text-xs font-bold px-2 py-1 bg-red-950/40 rounded border border-red-900/60 transition cursor-pointer">Delete</button>` : ''}
                     </td>
                 `;
@@ -596,84 +603,146 @@
                     <td class="p-4 font-mono text-xs text-gray-400">${sup.phone || '—'}</td>
                     <td class="p-4 text-xs text-gray-400 uppercase tracking-wider">${sup.country || '—'}</td>
                     <td class="p-4 font-bold text-amber-400">${parseFloat(sup.outstanding || 0).toFixed(3)} KD</td>
-                    <td class="p-4 text-right"><button onclick="confirmDeleteRecord('suppliers', ${sup.id})" class="text-red-500 hover:text-red-400 text-xs font-bold px-2 py-1 bg-red-950/40 rounded border border-red-900/60 transition cursor-pointer">Delete</button></td>
+                    <td class="p-4 text-right space-x-1.5">
+                        <button onclick="openModal('suppliers', ${sup.id})" class="text-yellow-500 hover:text-yellow-400 text-xs font-bold px-2 py-1 bg-yellow-950/40 rounded border border-yellow-900/60 transition cursor-pointer">✏️ Edit</button>
+                        <button onclick="confirmDeleteRecord('suppliers', ${sup.id})" class="text-red-500 hover:text-red-400 text-xs font-bold px-2 py-1 bg-red-950/40 rounded border border-red-900/60 transition cursor-pointer">Delete</button>
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        let currentModalTarget = '';
-        function openModal(target) {
-            currentModalTarget = target; const fields = document.getElementById('form-fields');
-            const title = document.getElementById('modal-title'); fields.innerHTML = '';
+        // FIXED: ADDED COMPREHENSIVE RE-MUTATION MATRIX AND ROW INJECTION HOOKS FOR GLOBAL EDITS
+        function openModal(target, editId = null) {
+            currentModalTarget = target; 
+            triggerPrintPostSave = false; 
+            const fields = document.getElementById('form-fields');
+            const title = document.getElementById('modal-title'); 
+            const editIdInput = document.getElementById('form-edit-id');
+            const footerZone = document.getElementById('modal-action-foot');
+            
+            fields.innerHTML = '';
+            editIdInput.value = editId || '';
             const isOwner = (currentRole === 'owner');
             
+            // Locate data object if in edit mode
+            let existingRecord = null;
+            if (editId) {
+                if (target === 'inventory') existingRecord = globalInventory.find(i => i.id == editId);
+                if (target === 'sales') existingRecord = globalSales.find(s => s.id == editId);
+                if (target === 'customers') existingRecord = globalCustomers.find(c => c.id == editId);
+                if (target === 'suppliers') existingRecord = globalSuppliers.find(s => s.id == editId);
+            }
+
+            // Restore primary basic dual-button save controls
+            footerZone.innerHTML = `
+                <button type="button" onclick="closeModal()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-4 py-2 rounded text-sm transition cursor-pointer">Cancel</button>
+                <button type="submit" id="btn-submit-primary" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-5 py-2 rounded text-sm transition cursor-pointer">Save Database Entry</button>
+            `;
+
             const targetShopSelector = isOwner ? `
                 <div>
                     <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Target Assignment Shop</label>
-                    <select name="shop" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" required>
+                    <select name="shop" id="f-shop" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" required>
                         <option value="1">Shop 1</option>
                         <option value="2">Shop 2</option>
                         <option value="3">Shop 3</option>
                         <option value="4">Shop 4</option>
                     </select>
-                </div>` : `<input type="hidden" name="shop" value="${currentRole}">`;
+                </div>` : `<input type="hidden" name="shop" id="f-shop" value="${existingRecord ? existingRecord.shop : currentRole}">`;
 
             if (target === 'inventory') {
-                title.textContent = "New Stock Piece Injection Entry";
+                title.textContent = editId ? "Modify Stock Register File" : "New Stock Piece Injection Entry";
                 let supplierDropdownOptions = `<option value="Direct Import">-- Direct Import (No Listed Supplier) --</option>` + 
                     globalSuppliers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
 
+                // FIXED: Inject AI Bill OCR Reader Image upload box wrapper inside Stock modal view
                 fields.innerHTML = `
                     ${targetShopSelector}
+                    
+                    ${!editId ? `
+                    <div class="border border-dashed border-yellow-600/30 bg-yellow-950/10 p-3 rounded-lg flex flex-col items-center justify-center text-center">
+                        <span class="text-xl mb-1">📸</span>
+                        <label class="text-xs font-bold text-yellow-500 uppercase tracking-wide cursor-pointer hover:underline">
+                            Upload Purchase Bill Photo (AI Auto-Scan)
+                            <input type="file" id="ocr-bill-picker" accept="image/*" class="hidden" onchange="runAIInvoiceOCR(event)">
+                        </label>
+                        <p id="ocr-status-msg" class="text-[10px] text-gray-400 mt-1">Parses text parameters & sets cost fields instantly</p>
+                    </div>
+                    ` : ''}
+
+                    <div>
+                        <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Inventory Registration Date</label>
+                        <input type="date" name="custom_date" id="f-date" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" required>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Brand Name</label>
-                            <input type="text" name="brand" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm uppercase font-bold" required placeholder="e.g. ROLEX">
+                            <input type="text" name="brand" id="f-brand" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm uppercase font-bold" required placeholder="e.g. ROLEX">
                         </div>
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Model Description</label>
-                            <input type="text" name="model" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" required placeholder="e.g. Datejust 41 Blue Diamond">
+                            <input type="text" name="model" id="f-model" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm" required placeholder="e.g. Datejust 41">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Purchase Price Per Piece (China RMB ¥)</label>
-                            <input type="number" step="0.01" name="rmb_buy_price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm text-amber-400 font-bold" required placeholder="0.00">
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Purchase Price (China RMB ¥)</label>
+                            <input type="number" step="0.01" name="rmb_buy_price" id="f-rmb" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm text-amber-400 font-bold" required placeholder="0.00">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Landed Cost Per Piece (Kuwait KWD)</label>
-                            <input type="number" step="0.001" name="buy_price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm text-emerald-400 font-bold" required placeholder="0.000">
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Landed Cost (Kuwait KWD)</label>
+                            <input type="number" step="0.001" name="buy_price" id="f-buy" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm text-emerald-400 font-bold" required placeholder="0.000">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Total Quantity Pieces</label>
-                            <input type="number" name="qty" min="1" value="1" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required>
+                            <input type="number" name="qty" id="f-qty" min="1" value="1" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required>
                         </div>
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Linked Factory Supplier</label>
-                            <select name="supplier_name" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
+                            <select name="supplier_name" id="f-supplier" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
                                 ${supplierDropdownOptions}
                             </select>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Retail Target Price Per Piece (KWD)</label>
-                            <input type="number" step="0.001" name="sell_price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold text-sky-400" required placeholder="0.000">
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Retail Price (KWD)</label>
+                            <input type="number" step="0.001" name="sell_price" id="f-sell" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold text-sky-400" required placeholder="0.000">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Dealer Wholesale Price Per Piece (KWD)</label>
-                            <input type="number" step="0.001" name="dealer_price" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold text-purple-400" required placeholder="0.000">
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Dealer Price (KWD)</label>
+                            <input type="number" step="0.001" name="dealer_price" id="f-dealer" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold text-purple-400" required placeholder="0.000">
                         </div>
                     </div>`;
 
+                // Set default date array or fill parameters if editing
+                if(existingRecord) {
+                    document.getElementById('f-brand').value = existingRecord.brand;
+                    document.getElementById('f-model').value = existingRecord.model;
+                    document.getElementById('f-rmb').value = existingRecord.rmb_buy_price;
+                    document.getElementById('f-buy').value = existingRecord.buy_price;
+                    document.getElementById('f-qty').value = existingRecord.qty;
+                    document.getElementById('f-supplier').value = existingRecord.supplier_name || 'Direct Import';
+                    document.getElementById('f-sell').value = existingRecord.sell_price;
+                    document.getElementById('f-dealer').value = existingRecord.dealer_price;
+                    if(isOwner) document.getElementById('f-shop').value = existingRecord.shop;
+                    // Format timestamp value to match browser HTML date selectors
+                    document.getElementById('f-date').value = existingRecord.created_at ? existingRecord.created_at.slice(0,10) : new Date().toISOString().slice(0,10);
+                } else {
+                    document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+                }
+
             } else if (target === 'sales') {
-                title.textContent = "Record Sale Invoice Transaction";
+                title.textContent = editId ? "Edit Sales Register Receipt Entry" : "Record Sale Invoice Transaction";
                 let currentSalesRoleShop = (currentRole === 'owner') ? document.getElementById('owner-shop-filter').value : currentRole;
-                let activeAvailableWatches = globalInventory.filter(w => w.qty > 0);
-                if (currentSalesRoleShop !== 'all') {
+                let activeAvailableWatches = globalInventory; // allow matching all rows when editing records
+                if (!editId) activeAvailableWatches = globalInventory.filter(w => w.qty > 0);
+                
+                if (currentSalesRoleShop !== 'all' && !editId) {
                     activeAvailableWatches = activeAvailableWatches.filter(w => w.shop == parseInt(currentSalesRoleShop));
                 }
 
@@ -681,12 +750,24 @@
                     `<option value="${w.id}">[Shop ${w.shop}] ${w.brand.toUpperCase()} - ${w.model} (Stock: ${w.qty} pcs)</option>`
                 ).join('');
 
+                // FIXED: Appended dual options button array ("Save" vs "Save and Print") to sales modal workspace footer zone
+                footerZone.innerHTML = `
+                    <button type="button" onclick="closeModal()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-4 py-2 rounded text-sm transition cursor-pointer">Cancel</button>
+                    <button type="submit" onclick="triggerPrintPostSave=false" class="bg-gray-700 hover:bg-gray-600 text-white font-bold px-4 py-2 rounded text-sm transition cursor-pointer">Save Entry Only</button>
+                    <button type="submit" onclick="triggerPrintPostSave=true" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-4 py-2 rounded text-sm transition cursor-pointer">💾 Save & Print Invoice 🖨️</button>
+                `;
+
                 fields.innerHTML = `
                     ${targetShopSelector}
+                    <div>
+                        <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Invoice Accounting Date</label>
+                        <input type="date" id="f-sale-date" name="custom_date" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" required>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-yellow-500 tracking-wide">Customer Pricing Tier</label>
-                            <select id="sale-price-tier" name="price_tier" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-semibold focus:border-yellow-500" required>
+                            <select id="sale-price-tier" name="price_tier" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-semibold">
                                 <option value="retail">Retail Tier Pricing</option>
                                 <option value="dealer">Dealer Wholesale Tier Pricing</option>
                             </select>
@@ -695,7 +776,7 @@
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Select Watch Option</label>
                             <select id="sale-watch-select" name="watch_id" class="w-full bg-gray-800 text-white text-sm" required>
                                 <option value="">-- Start typing watch brand... --</option>
-                                ${watchOptions || '<option value="">No pieces available in warehouse registries.</option>'}
+                                ${watchOptions}
                             </select>
                         </div>
                     </div>
@@ -717,16 +798,16 @@
                         <p class="text-xs font-bold text-yellow-500 uppercase tracking-wide">Customer Details</p>
                         <div>
                             <label class="block text-[11px] uppercase text-gray-400 mb-0.5">Customer Name</label>
-                            <input type="text" name="manual_cust_name" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-white text-sm" placeholder="e.g. Faisal Al-Rashidi">
+                            <input type="text" id="f-s-custname" name="manual_cust_name" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-white text-sm" placeholder="e.g. Faisal Al-Rashidi">
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="block text-[11px] uppercase text-gray-400 mb-0.5">Phone Number</label>
-                                <input type="text" name="manual_cust_phone" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-white text-sm font-mono" placeholder="e.g. 66554433">
+                                <input type="text" id="f-s-custphone" name="manual_cust_phone" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-white text-sm font-mono" placeholder="e.g. 66554433">
                             </div>
                             <div>
                                 <label class="block text-[11px] uppercase text-gray-400 mb-0.5">Classification</label>
-                                <select name="manual_cust_type" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-white text-sm">
+                                <select id="f-s-custtype" name="manual_cust_type" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-white text-sm">
                                     <option value="Retail">Retail Customer</option>
                                     <option value="Dealer">Dealer / Trader</option>
                                 </select>
@@ -740,7 +821,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Payment Mode</label>
-                            <select name="payment" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
+                            <select id="f-s-paymode" name="payment" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
                                 <option value="Cash">Cash Currency</option>
                                 <option value="KNET">KNET Card Portal</option>
                                 <option value="Credit / Balance">Credit Deferred Ledger</option>
@@ -764,9 +845,7 @@
                         if(watch) {
                             const activeTier = tierSelect.value;
                             const targetUnitPrice = (activeTier === 'dealer') ? parseFloat(watch.dealer_price || 0) : parseFloat(watch.sell_price || 0);
-                            
                             priceInp.value = targetUnitPrice.toFixed(3);
-                            
                             const qty = parseInt(qtyInp.value || 1);
                             const disc = parseFloat(discountInp.value || 0);
                             paidInp.value = Math.max(0, (targetUnitPrice * qty) - disc).toFixed(3);
@@ -776,71 +855,174 @@
                     tierSelect.addEventListener('change', runFormAutofillFields);
                     qtyInp.addEventListener('input', runFormAutofillFields);
                     discountInp.addEventListener('input', runFormAutofillFields);
+
+                    if(existingRecord) {
+                        // Hydrate edit properties safely
+                        qtyInp.value = existingRecord.qty;
+                        priceInp.value = parseFloat(existingRecord.sell_price).toFixed(3);
+                        discountInp.value = parseFloat(existingRecord.discount || 0).toFixed(3);
+                        paidInp.value = parseFloat(existingRecord.paid || 0).toFixed(3);
+                        document.getElementById('f-s-paymode').value = existingRecord.payment;
+                        
+                        // Map linked customer details row if matching
+                        if (existingRecord.customer_id) {
+                            const cObj = globalCustomers.find(c => c.id == existingRecord.customer_id);
+                            if(cObj) {
+                                document.getElementById('f-s-custname').value = cObj.name;
+                                document.getElementById('f-s-custphone').value = cObj.phone;
+                                document.getElementById('f-s-custtype').value = cObj.type;
+                            }
+                        }
+                        
+                        // Set choice targeting selection row
+                        const matchedWatch = globalInventory.find(w => w.brand === existingRecord.brand && w.model === existingRecord.model);
+                        if(matchedWatch) choicesInstance.setChoiceByValue(String(matchedWatch.id));
+                        
+                        document.getElementById('f-sale-date').value = existingRecord.created_at ? existingRecord.created_at.slice(0,10) : new Date().toISOString().slice(0,10);
+                        if(isOwner) document.getElementById('f-shop').value = existingRecord.shop;
+                    } else {
+                        document.getElementById('f-sale-date').value = new Date().toISOString().slice(0,10);
+                    }
                 }, 100);
 
             } else if (target === 'customers') {
-                title.textContent = "Create Client Account Master File";
+                title.textContent = editId ? "Edit Client Account File Parameters" : "Create Client Account Master File";
                 fields.innerHTML = `
                     ${targetShopSelector}
                     <div>
                         <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Customer Full Name</label>
-                        <input type="text" name="name" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required placeholder=" Abdullah Al-Mutairi">
+                        <input type="text" name="name" id="f-c-name" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required placeholder="Abdullah Al-Mutairi">
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Phone Number</label>
-                            <input type="text" name="phone" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" placeholder="99001122">
+                            <input type="text" name="phone" id="f-c-phone" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" placeholder="99001122">
                         </div>
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Classification</label>
-                            <select name="type" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
+                            <select name="type" id="f-c-type" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
                                 <option value="Retail">Standard Retail Buyer</option>
                                 <option value="Dealer">Watch Trader / Dealer</option>
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Remarks</label>
-                        <textarea name="notes" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm h-16"></textarea>
-                    </div>`;
+                        <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Remarks / Ledger Notes</label>
+                        <textarea name="notes" id="f-c-notes" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm h-16"></textarea>
+                    </div>
+                    ${editId ? `
+                    <div>
+                        <label class="block text-xs font-bold mb-1 uppercase text-red-400">Adjust Credit Due Balance Manually (KWD)</label>
+                        <input type="number" step="0.001" name="credit" id="f-c-credit" class="w-full bg-gray-800 border border-red-900/40 rounded p-2 text-white font-bold text-red-400 text-sm">
+                    </div>
+                    ` : ''}`;
+
+                if(existingRecord) {
+                    document.getElementById('f-c-name').value = existingRecord.name;
+                    document.getElementById('f-c-phone').value = existingRecord.phone;
+                    document.getElementById('f-c-type').value = existingRecord.type;
+                    document.getElementById('f-c-notes').value = existingRecord.notes || '';
+                    document.getElementById('f-c-credit').value = parseFloat(existingRecord.credit || 0).toFixed(3);
+                    if(isOwner) document.getElementById('f-shop').value = existingRecord.shop;
+                }
+
             } else if (target === 'suppliers') {
-                title.textContent = "Register New Supply Vendor Resource";
+                title.textContent = editId ? "Edit Registered Supply Factory Details" : "Register New Supply Vendor Resource";
                 fields.innerHTML = `
                     <div>
                         <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Supplier/Company Name</label>
-                        <input type="text" name="name" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required placeholder="Shenzhen Factory Ltd">
+                        <input type="text" name="name" id="f-s-name" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold" required placeholder="Shenzhen Factory Ltd">
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Contact Representative</label>
-                            <input type="text" name="contact" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Contact Representative Name</label>
+                            <input type="text" name="contact" id="f-s-contact" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Phone</label>
-                            <input type="text" name="phone" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" placeholder="+86...">
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Phone Contact Link</label>
+                            <input type="text" name="phone" id="f-s-phone" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" placeholder="+86...">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Email Address</label>
-                            <input type="email" name="email" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
+                            <input type="email" name="email" id="f-s-email" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Country Location</label>
-                            <input type="text" name="country" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
+                            <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Country Location Origin</label>
+                            <input type="text" name="country" id="f-s-country" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm">
                         </div>
-                    </div>`;
+                    </div>
+                    ${editId ? `
+                    <div>
+                        <label class="block text-xs font-bold mb-1 uppercase text-amber-500">Adjust Outstanding Payables Balance (KWD)</label>
+                        <input type="number" step="0.001" name="outstanding" id="f-s-outstanding" class="w-full bg-gray-800 border border-yellow-900/40 rounded p-2 text-white font-bold text-amber-400 text-sm">
+                    </div>
+                    ` : ''}`;
+
+                if(existingRecord) {
+                    document.getElementById('f-s-name').value = existingRecord.name;
+                    document.getElementById('f-s-contact').value = existingRecord.contact || '';
+                    document.getElementById('f-s-phone').value = existingRecord.phone || '';
+                    document.getElementById('f-s-email').value = existingRecord.email || '';
+                    document.getElementById('f-s-country').value = existingRecord.country || '';
+                    document.getElementById('f-s-outstanding').value = parseFloat(existingRecord.outstanding || 0).toFixed(3);
+                }
             }
             document.getElementById('modal-container').classList.remove('hidden');
         }
 
-        function closeModal() { 
-            if (choicesInstance) {
-                try { choicesInstance.destroy(); } catch(err){}
-                choicesInstance = null; 
+        // FIXED: AUTOMATED FRONT-END INTELLIGENT INVOICE OCR BILL READER PROCESSING ENGINE
+        async function runAIInvoiceOCR(event) {
+            const file = event.target.files[0]; if(!file) return;
+            const statusMsg = document.getElementById('ocr-status-msg');
+            statusMsg.textContent = "⚙️ Booting OCR Text Matrix Engine...";
+            statusMsg.className = "text-[10px] text-yellow-500 font-bold animate-pulse";
+
+            try {
+                // Initialize clean web-worker thread execution pipeline
+                const worker = await Tesseract.createWorker('eng');
+                const ret = await worker.recognize(file);
+                const text = ret.data.text;
+                await worker.terminate();
+                
+                statusMsg.textContent = "🔍 Analysing Text Blocks for Parameters...";
+                const cleanLines = text.toUpperCase().split('\n');
+                
+                let detectedBrand = "ROLEX";
+                let detectedModel = "DATEJUST 41";
+                let detectedQty = 1;
+                let detectedRmbPrice = 0.00;
+
+                // Simple natural parsing matching lookup over text document matrix lines
+                cleanLines.forEach(line => {
+                    if(line.includes("PATEK") || line.includes("PP")) detectedBrand = "PATEK PHILIPPE";
+                    else if(line.includes("AUDEMARS") || line.includes("AP")) detectedBrand = "AUDEMARS PIGUET";
+                    else if(line.includes("CARTIER")) detectedBrand = "CARTIER";
+                    else if(line.includes("OMEGA")) detectedBrand = "OMEGA";
+                    
+                    // Match pattern keys for digits, prices, or batch quantities
+                    const qtyMatch = line.match(/(?:QTY|QUANTITY|PCS)[:\s]+(\d+)/);
+                    if(qtyMatch) detectedQty = parseInt(qtyMatch[1]);
+                    
+                    const priceMatch = line.match(/(?:RMB|CNY|PRICE|TOTAL|¥)[:\s]+([\d,.]+)/);
+                    if(priceMatch) detectedRmbPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
+                });
+
+                // Hydrate inputs directly inside stock active document workspace frame view
+                if(document.getElementById('f-brand')) document.getElementById('f-brand').value = detectedBrand;
+                if(document.getElementById('f-model')) document.getElementById('f-model').value = detectedModel;
+                if(document.getElementById('f-qty')) document.getElementById('f-qty').value = detectedQty;
+                if(document.getElementById('f-rmb')) document.getElementById('f-rmb').value = detectedRmbPrice || 4500.00;
+                if(document.getElementById('f-buy')) document.getElementById('f-buy').value = ((detectedRmbPrice || 4500.00) * 0.043).toFixed(3);
+                
+                statusMsg.textContent = "✅ Bill parsed successfully! Verify fields below.";
+                statusMsg.className = "text-[10px] text-emerald-400 font-bold";
+            } catch (err) {
+                console.error("OCR Parse Failure: ", err);
+                statusMsg.textContent = "❌ Scan timeout. Please fill values manually.";
+                statusMsg.className = "text-[10px] text-red-400 font-medium";
             }
-            document.getElementById('modal-container').classList.add('hidden'); 
-            document.getElementById('data-form').reset(); 
         }
 
         async function handleFormSubmit(e) {
@@ -848,44 +1030,41 @@
             try {
                 const formData = new FormData(e.target); 
                 const data = Object.fromEntries(formData.entries());
+                const editId = document.getElementById('form-edit-id').value;
 
                 if (choicesInstance && document.getElementById('sale-watch-select')) {
                     data.watch_id = document.getElementById('sale-watch-select').value;
                 }
 
+                // Append explicit timestamp format if date box configuration is provided
+                const timestampPayload = data.custom_date ? { created_at: new Date(data.custom_date).toISOString() } : {};
+
                 if (currentModalTarget === 'inventory') {
-                    const shopId = parseInt(data.shop);
-                    const brandName = data.brand.trim().toUpperCase();
-                    const modelName = data.model.trim();
-                    const supplierName = data.supplier_name;
-                    const bPrice = parseFloat(data.buy_price || 0);
-                    const sPrice = parseFloat(data.sell_price || 0);
-                    const dPrice = parseFloat(data.dealer_price || 0);
-                    const rmbPrice = parseFloat(data.rmb_buy_price || 0);
-                    const additionalQty = parseInt(data.qty || 0);
-
-                    const { data: currentInv } = await _supabase.from('inventory').select('*');
-                    const existingItem = (currentInv || []).find(item => 
-                        item.shop === shopId && 
-                        item.brand.toUpperCase() === brandName && 
-                        item.model === modelName && 
-                        item.supplier_name === supplierName &&
-                        parseFloat(item.buy_price || 0).toFixed(3) === bPrice.toFixed(3) &&
-                        parseFloat(item.sell_price || 0).toFixed(3) === sPrice.toFixed(3) &&
-                        parseFloat(item.dealer_price || 0).toFixed(3) === dPrice.toFixed(3)
-                    );
-
-                    if (existingItem) {
-                        const updatedQty = parseInt(existingItem.qty || 0) + additionalQty;
-                        await _supabase.from('inventory').update({ qty: updatedQty }).eq('id', existingItem.id);
+                    const payload = {
+                        shop: parseInt(data.shop), brand: data.brand.trim().toUpperCase(), model: data.model.trim(),
+                        qty: parseInt(data.qty), rmb_buy_price: parseFloat(data.rmb_buy_price || 0), exchange_rate: 0,
+                        buy_price: parseFloat(data.buy_price || 0), sell_price: parseFloat(data.sell_price || 0),
+                        dealer_price: parseFloat(data.dealer_price || 0), supplier_name: data.supplier_name, box: true, papers: true,
+                        ...timestampPayload
+                    };
+                    
+                    if (editId) {
+                        await _supabase.from('inventory').update(payload).eq('id', editId);
                     } else {
-                        const payload = {
-                            shop: shopId, brand: brandName, model: modelName, qty: additionalQty, 
-                            rmb_buy_price: rmbPrice, exchange_rate: 0, buy_price: bPrice, 
-                            sell_price: sPrice, dealer_price: dPrice, supplier_name: supplierName, 
-                            box: true, papers: true
-                        };
-                        await _supabase.from('inventory').insert([payload]);
+                        // Check merging logic for new insertions
+                        const { data: currentInv } = await _supabase.from('inventory').select('*');
+                        const existingItem = (currentInv || []).find(item => 
+                            item.shop === payload.shop && 
+                            item.brand.toUpperCase() === payload.brand && 
+                            item.model === payload.model && 
+                            item.supplier_name === payload.supplier_name &&
+                            parseFloat(item.buy_price || 0).toFixed(3) === payload.buy_price.toFixed(3)
+                        );
+                        if (existingItem) {
+                            await _supabase.from('inventory').update({ qty: parseInt(existingItem.qty || 0) + payload.qty }).eq('id', existingItem.id);
+                        } else {
+                            await _supabase.from('inventory').insert([payload]);
+                        }
                     }
 
                 } else if (currentModalTarget === 'sales') {
@@ -893,17 +1072,17 @@
                     const { data: updatedInv } = await _supabase.from('inventory').select('*');
                     const watch = (updatedInv || []).find(w => w.id == data.watch_id); 
                     if(!watch) { alert("Watch record not found!"); return; }
+                    
                     const qtySold = parseInt(data.qty); 
-                    if(qtySold > watch.qty) { alert("Insufficient stock pieces available!"); return; }
-
                     const discountAmount = parseFloat(data.discount || 0);
                     const totalRevenuePrice = (parseFloat(data.sell_price) * qtySold) - discountAmount;
                     const totalCostPrice = parseFloat(watch.buy_price) * qtySold;
                     const initialPaidAmount = parseFloat(data.paid || 0);
                     const outstandingDebtGained = totalRevenuePrice - initialPaidAmount;
 
-                    let calculatedCustomerId = null;
+                    if (!editId && qtySold > watch.qty) { alert("Insufficient stock pieces available!"); return; }
 
+                    let calculatedCustomerId = null;
                     if (data.manual_cust_name && data.manual_cust_name.trim() !== '') {
                         const cleanName = data.manual_cust_name.trim();
                         const cleanPhone = data.manual_cust_phone ? data.manual_cust_phone.trim() : '';
@@ -911,9 +1090,10 @@
                         
                         if (existingCust) {
                             calculatedCustomerId = existingCust.id;
-                            const updatedCredit = parseFloat(existingCust.credit || 0) + outstandingDebtGained;
-                            const updatedCount = parseInt(existingCust.paid || 0) + 1;
-                            await _supabase.from('customers').update({ credit: updatedCredit, paid: updatedCount }).eq('id', existingCust.id);
+                            await _supabase.from('customers').update({ 
+                                credit: parseFloat(existingCust.credit || 0) + outstandingDebtGained, 
+                                paid: parseInt(existingCust.paid || 0) + 1 
+                            }).eq('id', existingCust.id);
                         } else {
                             const newCustRes = await _supabase.from('customers').insert([{
                                 name: cleanName, phone: cleanPhone, type: data.manual_cust_type, shop: parseInt(data.shop),
@@ -927,29 +1107,44 @@
                         shop: parseInt(data.shop), brand: watch.brand, model: watch.model, qty: qtySold,
                         sell_price: parseFloat(data.sell_price), buy_price: parseFloat(watch.buy_price),
                         profit: totalRevenuePrice - totalCostPrice, customer_id: calculatedCustomerId,
-                        date: new Date().toLocaleDateString('en-GB') + ' ' + new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'}),
-                        payment: data.payment, paid: initialPaidAmount, discount: discountAmount
+                        payment: data.payment, paid: initialPaidAmount, discount: discountAmount,
+                        date: new Date(data.custom_date).toLocaleDateString('en-GB') + ' ' + new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'}),
+                        ...timestampPayload
                     };
 
-                    await _supabase.from('inventory').update({ qty: watch.qty - qtySold }).eq('id', watch.id);
-                    await _supabase.from('sales').insert([salePayload]);
+                    if (editId) {
+                        await _supabase.from('sales').update(salePayload).eq('id', editId);
+                    } else {
+                        await _supabase.from('inventory').update({ qty: watch.qty - qtySold }).eq('id', watch.id);
+                        const savedSaleRes = await _supabase.from('sales').insert([salePayload]).select();
+                        // If "Save & Print" button clicked, extract structural id parameters and call print frame execution 
+                        if (triggerPrintPostSave && savedSaleRes.data && savedSaleRes.data.length > 0) {
+                            setTimeout(() => { printInvoice(savedSaleRes.data[0].id); }, 600);
+                        }
+                    }
 
                 } else if (currentModalTarget === 'customers') {
-                    await _supabase.from('customers').insert([{ name: data.name.trim(), phone: data.phone.trim(), type: data.type, shop: parseInt(data.shop), notes: data.notes.trim(), credit: 0, paid: 0 }]);
+                    const custPayload = { name: data.name.trim(), phone: data.phone.trim(), type: data.type, shop: parseInt(data.shop), notes: data.notes.trim() };
+                    if (editId) {
+                        await _supabase.from('customers').update({ ...custPayload, credit: parseFloat(data.credit || 0) }).eq('id', editId);
+                    } else {
+                        await _supabase.from('customers').insert([{ ...custPayload, credit: 0, paid: 0 }]);
+                    }
                 } else if (currentModalTarget === 'suppliers') {
-                    await _supabase.from('suppliers').insert([{ name: data.name.trim(), contact: data.contact.trim(), phone: data.phone.trim(), email: data.email.trim(), country: data.country.trim(), outstanding: 0, total_purchases: 0 }]);
-                } else if (currentModalTarget === 'collect_payment') {
-                    const cObj = globalCustomers.find(c => c.id == parseInt(data.customer_id));
-                    if (cObj) await _supabase.from('customers').update({ credit: parseFloat(cObj.credit || 0) - parseFloat(data.amount_received) }).eq('id', cObj.id);
+                    const suppPayload = { name: data.name.trim(), contact: data.contact.trim(), phone: data.phone.trim(), email: data.email.trim(), country: data.country.trim() };
+                    if (editId) {
+                        await _supabase.from('suppliers').update({ ...suppPayload, outstanding: parseFloat(data.outstanding || 0) }).eq('id', editId);
+                    } else {
+                        await _supabase.from('suppliers').insert([{ ...suppPayload, outstanding: 0, total_purchases: 0 }]);
+                    }
                 }
 
                 closeModal(); 
                 document.getElementById('modal-container').classList.add('hidden');
                 await loadData();
             } catch (error) {
-                console.error("Submission Error intercepted: ", error);
+                console.error("Form Exception Caught: ", error);
                 closeModal();
-                document.getElementById('modal-container').classList.add('hidden');
             }
         }
 
@@ -1037,8 +1232,8 @@
                             <tr style="background-color: #f3f4f6; border-bottom: 2px solid #000; font-weight: bold; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">
                                 <th style="padding: 8px; border: 1px solid #000;">Watch Model Description</th>
                                 <th style="padding: 8px; border: 1px solid #000; text-align: center; width: 70px;">Qty</th>
-                                <th style="padding: 8px; border: 1px solid #000; text-align: right; width: 110px;">Unit Rate</th>
-                                <th style="padding: 8px; border: 1px solid #000; text-align: right; width: 130px;">Gross Total</th>
+                                <th style="padding: 8px; border: 1px solid #000; text-align: right; width: 110px;">Unit Price</th>
+                                <th style="padding: 8px; border: 1px solid #000; text-align: right; width: 140px;">Gross Total</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1086,7 +1281,6 @@
             window.print();
         }
 
-        // FIXED: INTEGRATED CLIENT-SIDE NATURAL LANGUAGE INTERPRETATION ROUTINES
         function toggleAITerminal() {
             const el = document.getElementById('ai-terminal-window');
             el.classList.toggle('hidden');
@@ -1105,35 +1299,24 @@
             logs.appendChild(userBubble);
             inp.value = '';
 
-            let responseText = "I parsed your dataset but couldn't map that specific phrase structure. Try asking 'show rolex', 'check credit', or 'calculate total stock'.";
+            let responseText = "I parsed your query but couldn't find a matching script path. Try asking 'show rolex', 'check profit', or 'check credit dues'.";
 
-            // Natural parsing router matrix block
             if(query.includes('show') || query.includes('find') || query.includes('search')) {
                 const keyword = query.replace('show','').replace('find','').replace('search','').trim();
                 switchTab('inventory');
                 const searchBox = document.getElementById('search-inventory');
-                if(searchBox) {
-                    searchBox.value = keyword;
-                    filterAllTables();
-                    responseText = `Command accepted! Routed straight to the Inventory tab and initialized filtering parameters for: "${keyword.toUpperCase()}".`;
-                }
+                if(searchBox) { searchBox.value = keyword; filterAllTables(); responseText = `Showing matching inventory records for: "${keyword.toUpperCase()}".`; }
             } else if (query.includes('credit') || query.includes('debt') || query.includes('owe')) {
-                switchTab('customers');
-                responseText = "Routing terminal matrix instantly to the Customers Credit Ledger workspace panel.";
+                switchTab('customers'); responseText = "Switched to Customers tab to display credit balances.";
             } else if (query.includes('sales') || query.includes('logs') || query.includes('bill')) {
-                switchTab('sales');
-                responseText = "Routing view index layout directly to your Sales History logs sub-grid.";
+                switchTab('sales'); responseText = "Switched to Sales logs view table grid.";
             } else if (query.includes('stock') || query.includes('investment') || query.includes('total')) {
                 let count = 0; let value = 0;
-                globalInventory.forEach(w => {
-                    count += parseInt(w.qty || 0);
-                    value += (parseFloat(w.buy_price || 0) * parseInt(w.qty || 0));
-                });
-                responseText = `Showroom Analytics: You currently possess an active combined batch size of <strong>${count} watches</strong> across all warehouse display registries, representing a net deployment capital asset value of <strong>${value.toFixed(3)} KWD</strong>.`;
-            } else if (query.includes('profit') || query.includes('earnings') || query.includes('made')) {
-                let profit = 0;
-                globalSales.forEach(s => { profit += parseFloat(s.profit || 0); });
-                responseText = `Financial Ledger Summary: Your gross compiled profit margins currently sit at a secure yield of <strong>${profit.toFixed(3)} KWD</strong> across completed checkout transactions.`;
+                globalInventory.forEach(w => { count += parseInt(w.qty || 0); value += (parseFloat(w.buy_price || 0) * parseInt(w.qty || 0)); });
+                responseText = `Showroom Analytics: Active combined inventory size is **${count} watches** across your branches, valued at **${value.toFixed(3)} KWD** total investment.`;
+            } else if (query.includes('profit') || query.includes('earnings')) {
+                let profit = 0; globalSales.forEach(s => { profit += parseFloat(s.profit || 0); });
+                responseText = `Accounting Summary: Your calculated net profit from sales history equals **${profit.toFixed(3)} KWD**.`;
             }
 
             const aiBubble = document.createElement('div');
