@@ -264,16 +264,8 @@
 
     <div id="invoice-print-zone" style="background: white !important; color: black !important;"></div>
 
-    <script type="importmap">
-    {
-        "imports": {
-            "@google/generative-ai": "https://esm.run/@google/generative-ai"
-        }
-    }
-    </script>
-
     <script type="module">
-        import { GoogleGenAI } from "@google/generative-ai";
+        import { GoogleGenAI } from "https://esm.run/@google/genai";
         window.GoogleGenAI = GoogleGenAI; 
     </script>
 
@@ -382,8 +374,8 @@
             });
             const targetedView = document.getElementById(`view-${tabId}`);
             if(targetedView) targetedView.classList.remove('hidden');
-            const roundedBtn = document.getElementById(`tab-${tabId}`);
-            if(roundedBtn) roundedBtn.classList.add('border-yellow-500', 'text-yellow-500');
+            const targetBtn = document.getElementById(`tab-${tabId}`);
+            if(targetBtn) targetBtn.classList.add('border-yellow-500', 'text-yellow-500');
         }
 
         function initRealtimeSync() {
@@ -1034,7 +1026,7 @@
             const file = event.target.files[0]; if(!file) return;
             const statusMsg = document.getElementById('ocr-status-msg');
 
-            statusMsg.textContent = "🤖 Connecting to Google Gemini Visual Neural Network...";
+            statusMsg.textContent = "🤖 Connecting to Google Gemini Framework Node...";
             statusMsg.className = "text-xs text-yellow-500 font-bold animate-pulse";
 
             try {
@@ -1042,27 +1034,30 @@
                 reader.readAsDataURL(file);
                 reader.onloadend = async () => {
                     const base64Data = reader.result.split(',')[1];
-                    const imagePart = { inlineData: { data: base64Data, mimeType: file.type } };
-
+                    
                     const promptMacro = `
                         You are an expert watch retail accountant parsing custom Chinese handwritten supplier invoices. 
                         Carefully audit the attached matrix grid picture file. Ignore address lines or header metadata.
                         Extract each row from the ledger catalog list table.
                         Identify: watch brand, model number string, quantity count, and RMB factory unit cost.
                         Return the data STRICTLY as a clean, standardized, minified JSON array using exactly this structure without formatting backticks:
-                        [{"brand":"ROLEX","model":"62X","qty":720,"rmb_buy_price":8.40}]
+                        [{"brand":"KATIANDA","model":"62X","qty":720,"rmb_buy_price":8.40}]
                     `;
 
-                    const ai = new window.GoogleGenAI({ apiKey: GEMINI_API_KEY });
-                    const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+                    // FIXED: Re-mapped the constructor using direct framework configuration rules
+                    const aiClient = new window.GoogleGenAI({ apiKey: GEMINI_API_KEY });
                     
-                    statusMsg.textContent = "⚡ Reading handwriting lines and verifying item matrices...";
-                    const result = await model.generateContent([promptMacro, imagePart]);
-                    const cleanResponseText = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+                    statusMsg.textContent = "⚡ Running deep image matrix layout analysis...";
+                    const result = await aiClient.models.generateContent({
+                        model: "gemini-2.5-flash",
+                        contents: [
+                            promptMacro,
+                            { inlineData: { data: base64Data, mimeType: file.type } }
+                        ]
+                    });
                     
+                    const cleanResponseText = result.text.replace(/```json/g, '').replace(/```/g, '').trim();
                     const parsedBatch = JSON.parse(cleanResponseText);
-                    
-                    if(!Array.isArray(parsedBatch) || parsedBatch.length === 0) throw new Error("Invalid format");
 
                     activeAiDraftBatch = parsedBatch.map(item => ({
                         brand: item.brand || "KATIANDA",
@@ -1100,12 +1095,12 @@
 
                     document.getElementById('ai-batch-review-zone').classList.remove('hidden');
                     document.getElementById('manual-form-wrapper').classList.add('hidden'); 
-                    statusMsg.textContent = `✅ Successfully audited ${activeAiDraftBatch.length} lines from bill! Enter your custom KWD prices below to save.`;
+                    statusMsg.textContent = `✅ Successfully mapped ${activeAiDraftBatch.length} lines from KATIANDA voucher! Type custom prices below.`;
                     statusMsg.className = "text-xs text-emerald-400 font-bold";
                 };
             } catch (err) {
-                console.error("Gemini Critical Loop Exception: ", err);
-                statusMsg.textContent = "❌ Network parse timeout. Reverting to basic individual fields panel.";
+                console.error("Gemini Unified Execution Failure: ", err);
+                statusMsg.textContent = "❌ Core parsing exception encountered. Reverting to manual entry cards.";
                 statusMsg.className = "text-xs text-red-400 font-medium";
             }
         }
@@ -1348,7 +1343,7 @@
                                 <th style="padding: 8px; border: 1px solid #000;">Watch Model Description</th>
                                 <th style="padding: 8px; border: 1px solid #000; text-align: center; width: 70px;">Qty</th>
                                 <th style="padding: 8px; border: 1px solid #000; text-align: right; width: 110px;">Unit Rate</th>
-                                <th style="padding: 8px; border: 1px solid #000; text-align: right; width: 140px;">Gross Total</th>
+                                <th style="padding: 8px; border: 1px solid #000; text-align: right; width: 130px;">Gross Total</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1402,6 +1397,7 @@
             if(!el.classList.contains('hidden')) document.getElementById('ai-user-query').focus();
         }
 
+        // FIXED: CONVERSATIONAL AGENT ROUTER REWRITTEN TO USE DIRECT METHOD WRAPPERS
         async function processAIRequest() {
             const inp = document.getElementById('ai-user-query');
             const logs = document.getElementById('ai-chat-logs');
@@ -1431,10 +1427,15 @@
                         Otherwise, output a friendly business text analysis statement summary context response.
                     `;
 
-                    const genAI = new window.GoogleGenAI({ apiKey: GEMINI_API_KEY });
-                    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-                    const result = await model.generateContent([datasetContextString, query]);
-                    const cleanTxt = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+                    // FIXED: Instantiated direct constructor mapping securely
+                    const aiClient = new window.GoogleGenAI({ apiKey: GEMINI_API_KEY });
+                    
+                    const result = await aiClient.models.generateContent({
+                        model: "gemini-2.5-flash",
+                        contents: [datasetContextString, query]
+                    });
+                    
+                    const cleanTxt = result.text.replace(/```json/g, '').replace(/```/g, '').trim();
 
                     try {
                         const parsedIntent = JSON.parse(cleanTxt);
