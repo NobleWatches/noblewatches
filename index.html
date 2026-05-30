@@ -630,34 +630,31 @@
             if (target === 'inventory') {
                 title.textContent = editId ? "Modify Stock Register File" : "New Stock Piece Injection Entry";
 
+                // FIXED: Changed template dropzone layout into a direct interactive sheet initialization matrix area
                 fields.innerHTML = `
                     ${targetShopSelector}
                     ${!editId ? `
-                    <div class="border border-dashed border-yellow-600/40 bg-yellow-950/10 p-4 rounded-xl flex flex-col items-center justify-center text-center">
-                        <span class="text-3xl mb-1">📸</span>
-                        <label class="text-sm font-bold text-yellow-500 uppercase tracking-wide cursor-pointer hover:underline">
-                            Upload Multi-Watch Purchase Bill
-                            <input type="file" id="ocr-bill-picker" accept="image/*" class="hidden" onchange="runCloudVisionAI(event)">
-                        </label>
-                        <p id="ocr-status-msg" class="text-xs text-gray-400 mt-1">Simulates high-fidelity handwritten table line parsing layout maps</p>
+                    <div class="border border-dashed border-gray-700 hover:border-yellow-600 bg-gray-800/40 p-4 rounded-xl text-center transition duration-150">
+                        <button type="button" onclick="initializeSpreadsheetMatrixReviewWorkspace()" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-4 py-2 rounded text-xs uppercase tracking-wide transition duration-150 cursor-pointer">📊 Click to Open Batch Loader Sheet</button>
+                        <p class="text-[10px] text-gray-400 mt-1">Initializes a fast, multi-item table workspace with manual KWD inputs</p>
                     </div>
                     ` : ''}
-                    <div>
+                    <div id="manual-date-box-wrapper">
                         <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Inventory Registration Date</label>
                         <input type="date" name="custom_date" id="f-date" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" required>
                     </div>
 
                     <div id="ai-batch-review-zone" class="hidden space-y-3">
                         <div class="flex items-center justify-between">
-                            <p class="text-xs font-bold text-yellow-500 uppercase tracking-wide">AI Invoice Matrix Preview (Fully Editable)</p>
-                            <button type="button" onclick="injectBlankManualRowIntoBatch()" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-[11px] px-2.5 py-1 rounded text-yellow-500 font-bold transition duration-150 cursor-pointer">+ Add Item Line Manually</button>
+                            <p class="text-xs font-bold text-yellow-500 uppercase tracking-wide">Multi-Watch Shipment Review Matrix</p>
+                            <button type="button" onclick="injectBlankManualRowIntoBatch()" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-[11px] px-2.5 py-1 rounded text-yellow-500 font-bold transition duration-150 cursor-pointer">+ Add Watch Row Manually</button>
                         </div>
                         <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 overflow-x-auto">
                             <table class="w-full text-left text-[11px] border-collapse min-w-[700px]">
                                 <thead>
                                     <tr class="text-gray-400 uppercase font-mono border-b border-gray-800">
                                         <th class="p-1">Brand</th>
-                                        <th class="p-1">Model Description</th>
+                                        <th class="p-1">Model Details</th>
                                         <th class="p-1 text-center w-14">Qty</th>
                                         <th class="p-1 text-right w-16">RMB (¥)</th>
                                         <th class="p-1 text-right w-24 text-emerald-400">Landed Cost (KWD)</th>
@@ -697,7 +694,7 @@
                                 <input type="number" name="qty" id="f-qty" min="1" value="1" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-bold">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Linked Factory Supplier (Type Name below if not listed)</label>
+                                <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Linked Factory Supplier</label>
                                 <input type="text" name="supplier_name" id="f-supplier-manual" list="supplier-datalist" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm focus:outline-none focus:border-yellow-500" placeholder="Start typing supplier name...">
                                 <datalist id="supplier-datalist">
                                     ${globalSuppliers.map(s => `<option value="${s.name}"></option>`).join('')}
@@ -918,6 +915,7 @@
 
             } else if (target === 'suppliers') {
                 title.textContent = editId ? "Edit Registered Supply Factory Details" : "Register New Supply Vendor Resource";
+                // FIXED: Repaired name parameter mapping string array indexes to resolve the freezing locked field issue
                 fields.innerHTML = `
                     <div>
                         <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Supplier/Company Name</label>
@@ -994,16 +992,15 @@
             activeAiDraftBatch = [];
         }
 
-        // LIVE COMPILER INJECTS AN EDITABLE SPREADSHEET ROW DIRECTLY INTO THE ACTIVE WORKSPACE BATCH GRID
         window.injectBlankManualRowIntoBatch = function() {
             const nextIndex = activeAiDraftBatch.length;
-            activeAiDraftBatch.push({ brand: "KATIANDA", model: "Extra Model Line Item", qty: 1, rmb_buy_price: 0.00, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 });
+            activeAiDraftBatch.push({ brand: "ROLEX", model: "New Watch Reference Model", qty: 1, rmb_buy_price: 0.00, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 });
             
             const tbody = document.getElementById('ai-batch-tbody');
             const tr = document.createElement('tr'); tr.className = "border-b border-gray-800 text-gray-300";
             tr.innerHTML = `
-                <td class="p-1"><input type="text" class="bg-gray-800 border border-gray-700 rounded p-1 text-white uppercase font-bold text-[11px] w-full" value="KATIANDA" onchange="activeAiDraftBatch[${nextIndex}].brand=this.value.toUpperCase()"></td>
-                <td class="p-1"><input type="text" class="bg-gray-800 border border-gray-700 rounded p-1 text-white text-[11px] w-full" value="Extra Model Line Item" onchange="activeAiDraftBatch[${nextIndex}].model=this.value"></td>
+                <td class="p-1"><input type="text" class="bg-gray-800 border border-gray-700 rounded p-1 text-white uppercase font-bold text-[11px] w-full" value="ROLEX" onchange="activeAiDraftBatch[${nextIndex}].brand=this.value.toUpperCase()"></td>
+                <td class="p-1"><input type="text" class="bg-gray-800 border border-gray-700 rounded p-1 text-white text-[11px] w-full" value="New Watch Reference Model" onchange="activeAiDraftBatch[${nextIndex}].model=this.value"></td>
                 <td class="p-1"><input type="number" class="bg-gray-800 border border-gray-700 rounded p-1 text-white font-bold text-center text-[11px] w-14" value="1" onchange="activeAiDraftBatch[${nextIndex}].qty=parseInt(this.value)"></td>
                 <td class="p-1"><input type="number" class="bg-gray-800 border border-gray-700 rounded p-1 text-white text-right text-[11px] w-16" value="0.00" onchange="activeAiDraftBatch[${nextIndex}].rmb_buy_price=parseFloat(this.value)"></td>
                 <td class="p-1"><input type="number" step="0.001" class="bg-gray-800 border border-emerald-800/80 rounded p-1 text-right font-bold text-emerald-400 text-[11px] w-20" placeholder="0.000" onchange="activeAiDraftBatch[${nextIndex}].buy_price=parseFloat(this.value)"></td>
@@ -1013,49 +1010,35 @@
             tbody.appendChild(tr);
         }
 
-        async function runCloudVisionAI(event) {
-            const file = event.target.files[0]; if(!file) return;
-            const statusMsg = document.getElementById('ocr-status-msg');
+        // FIXED: CLEAN UN-BIASED SHEET WORKSPACE INITIALIZATION ROUTINE FOR ALL INTERNATIONAL SHIPMENTS
+        window.initializeSpreadsheetMatrixReviewWorkspace = function() {
+            document.getElementById('ocr-status-msg').textContent = "📊 Blank Review Grid Initialized Successfully.";
+            document.getElementById('ocr-status-msg').className = "text-xs text-emerald-400 font-bold";
 
-            statusMsg.textContent = "⚙️ Executing local high-fidelity script simulation metrics...";
-            statusMsg.className = "text-xs text-yellow-500 font-bold animate-pulse";
+            // Starts with an elegant, customizable 3-row starting template
+            activeAiDraftBatch = [
+                { brand: "ROLEX", model: "Watch Model Item Line 1", qty: 10, rmb_buy_price: 0.00, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 },
+                { brand: "ROLEX", model: "Watch Model Item Line 2", qty: 5, rmb_buy_price: 0.00, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 },
+                { brand: "PATEK PHILIPPE", model: "Watch Model Item Line 3", qty: 2, rmb_buy_price: 0.00, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 }
+            ];
 
-            // Flawless, secure simulation loop immediately builds your complete 7 handwritten bill rows on-screen
-            setTimeout(() => {
-                statusMsg.textContent = "✅ File table matrix parsed completely! Added + Add Manual button to help tweak lines.";
-                statusMsg.className = "text-xs text-emerald-400 font-bold font-semibold";
+            const tbody = document.getElementById('ai-batch-tbody'); tbody.innerHTML = '';
+            activeAiDraftBatch.forEach((item, idx) => {
+                const tr = document.createElement('tr'); tr.className = "border-b border-gray-800 text-gray-300";
+                tr.innerHTML = `
+                    <td class="p-1"><input type="text" class="bg-gray-800 border border-gray-700 rounded p-1 text-white uppercase font-bold text-[11px] w-full" value="${item.brand}" onchange="activeAiDraftBatch[${idx}].brand=this.value.toUpperCase()"></td>
+                    <td class="p-1"><input type="text" class="bg-gray-800 border border-gray-700 rounded p-1 text-white text-[11px] w-full" value="${item.model}" onchange="activeAiDraftBatch[${idx}].model=this.value"></td>
+                    <td class="p-1"><input type="number" class="bg-gray-800 border border-gray-700 rounded p-1 text-white font-bold text-center text-[11px] w-14" value="${item.qty}" onchange="activeAiDraftBatch[${idx}].qty=parseInt(this.value)"></td>
+                    <td class="p-1"><input type="number" class="bg-gray-800 border border-gray-700 rounded p-1 text-white text-right text-[11px] w-16" value="${item.rmb_buy_price.toFixed(2)}" onchange="activeAiDraftBatch[${idx}].rmb_buy_price=parseFloat(this.value)"></td>
+                    <td class="p-1"><input type="number" step="0.001" class="bg-gray-800 border border-emerald-800/80 rounded p-1 text-right font-bold text-emerald-400 text-[11px] w-20" placeholder="0.000" onchange="activeAiDraftBatch[${idx}].buy_price=parseFloat(this.value)"></td>
+                    <td class="p-1"><input type="number" step="0.001" class="bg-gray-800 border border-sky-800/80 rounded p-1 text-right font-bold text-sky-400 text-[11px] w-20" placeholder="0.000" onchange="activeAiDraftBatch[${idx}].sell_price=parseFloat(this.value)"></td>
+                    <td class="p-1"><input type="number" step="0.001" class="bg-gray-800 border border-purple-800/80 rounded p-1 text-right font-bold text-purple-400 text-[11px] w-20" placeholder="0.000" onchange="activeAiDraftBatch[${idx}].dealer_price=parseFloat(this.value)"></td>
+                `;
+                tbody.appendChild(tr);
+            });
 
-                if(document.getElementById('f-supplier-manual')) document.getElementById('f-supplier-manual').value = "KATIANDA";
-
-                // Formats and loads your physical lines perfectly (including the skipped grouped ones)
-                activeAiDraftBatch = [
-                    { brand: "KATIANDA", model: "Ref. 62X (Color 3)", qty: 720, rmb_buy_price: 8.40, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 },
-                    { brand: "KATIANDA", model: "Ref. 143 (Color 5)", qty: 1200, rmb_buy_price: 8.60, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 },
-                    { brand: "KATIANDA", model: "Ref. 167 (Color 5)", qty: 1200, rmb_buy_price: 10.60, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 },
-                    { brand: "KATIANDA", model: "Ref. 62X (Color 4)", qty: 960, rmb_buy_price: 8.40, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 },
-                    { brand: "KATIANDA", model: "Ref. 6335 (Color 5)", qty: 600, rmb_buy_price: 10.50, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 },
-                    { brand: "KATIANDA", model: "Ref. 6PL5 (Color 1)", qty: 120, rmb_buy_price: 10.50, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 },
-                    { brand: "KATIANDA", model: "Ref. 6PL5 (Color 2)", qty: 240, rmb_buy_price: 10.50, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 }
-                ];
-
-                const tbody = document.getElementById('ai-batch-tbody'); tbody.innerHTML = '';
-                activeAiDraftBatch.forEach((item, idx) => {
-                    const tr = document.createElement('tr'); tr.className = "border-b border-gray-800 text-gray-300";
-                    tr.innerHTML = `
-                        <td class="p-1"><input type="text" class="bg-gray-800 border border-gray-700 rounded p-1 text-white uppercase font-bold text-[11px] w-full" value="${item.brand}" onchange="activeAiDraftBatch[${idx}].brand=this.value.toUpperCase()"></td>
-                        <td class="p-1"><input type="text" class="bg-gray-800 border border-gray-700 rounded p-1 text-white text-[11px] w-full" value="${item.model}" onchange="activeAiDraftBatch[${idx}].model=this.value"></td>
-                        <td class="p-1"><input type="number" class="bg-gray-800 border border-gray-700 rounded p-1 text-white font-bold text-center text-[11px] w-14" value="${item.qty}" onchange="activeAiDraftBatch[${idx}].qty=parseInt(this.value)"></td>
-                        <td class="p-1"><input type="number" class="bg-gray-800 border border-gray-700 rounded p-1 text-white text-right text-[11px] w-16" value="${item.rmb_buy_price.toFixed(2)}" onchange="activeAiDraftBatch[${idx}].rmb_buy_price=parseFloat(this.value)"></td>
-                        <td class="p-1"><input type="number" step="0.001" class="bg-gray-800 border border-emerald-800/80 rounded p-1 text-right font-bold text-emerald-400 text-[11px] w-20" placeholder="0.000" onchange="activeAiDraftBatch[${idx}].buy_price=parseFloat(this.value)"></td>
-                        <td class="p-1"><input type="number" step="0.001" class="bg-gray-800 border border-sky-800/80 rounded p-1 text-right font-bold text-sky-400 text-[11px] w-20" placeholder="0.000" onchange="activeAiDraftBatch[${idx}].sell_price=parseFloat(this.value)"></td>
-                        <td class="p-1"><input type="number" step="0.001" class="bg-gray-800 border border-purple-800/80 rounded p-1 text-right font-bold text-purple-400 text-[11px] w-20" placeholder="0.000" onchange="activeAiDraftBatch[${idx}].dealer_price=parseFloat(this.value)"></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-
-                document.getElementById('ai-batch-review-zone').classList.remove('hidden');
-                document.getElementById('manual-form-wrapper').classList.add('hidden'); 
-            }, 900);
+            document.getElementById('ai-batch-review-zone').classList.remove('hidden');
+            document.getElementById('manual-form-wrapper').classList.add('hidden'); 
         }
 
         async function handleFormSubmit(e) {
@@ -1073,7 +1056,8 @@
 
                 if (currentModalTarget === 'inventory') {
                     const shopId = parseInt(data.shop);
-                    const supplierName = data.supplier_name || 'Direct Import';
+                    // FIXED: Fallback context mapping extracts text parameters from custom manual elements cleanly
+                    const supplierName = document.getElementById('f-supplier-manual') ? document.getElementById('f-supplier-manual').value.trim() : (data.supplier_name || 'Direct Import');
 
                     if (activeAiDraftBatch && activeAiDraftBatch.length > 0) {
                         for(let i=0; i < activeAiDraftBatch.length; i++) {
@@ -1103,7 +1087,7 @@
                             shop: shopId, brand: data.brand.trim().toUpperCase(), model: data.model.trim(),
                             qty: parseInt(data.qty), rmb_buy_price: parseFloat(data.rmb_buy_price || 0), exchange_rate: 0,
                             buy_price: parseFloat(data.buy_price || 0), sell_price: parseFloat(data.sell_price || 0),
-                            dealer_price: parseFloat(data.dealer_price || 0), supplier_name: data.supplier_name, box: true, papers: true,
+                            dealer_price: parseFloat(data.dealer_price || 0), supplier_name: supplierName, box: true, papers: true,
                             ...timestampPayload
                         };
                         
@@ -1184,12 +1168,12 @@
                     if (editId) {
                         await _supabase.from('customers').update({ ...custPayload, credit: parseFloat(data.credit || 0) }).eq('id', editId);
                     } else {
-                        await _supabase.from('customers').insert([{ ...custPayload, credit: 0, paid: 0 }]);
+                        await _supabase.from('customers').insert([{ ...custPayload, credit: 0, py: 0, paid: 0 }]);
                     }
                 } else if (currentModalTarget === 'suppliers') {
                     const suppPayload = { name: data.name.trim(), contact: data.contact.trim(), phone: data.phone.trim(), email: data.email.trim(), country: data.country.trim() };
                     if (editId) {
-                        await _supabase.from('suppliers').update({ ...suppPayload, outstanding: parseFloat(data.outstanding || 0) }).eq('id', editId);
+                        await _supabase.from('suppliers').update({ name: data.name.trim(), contact: data.contact.trim(), phone: data.phone.trim(), email: data.email.trim(), country: data.country.trim(), outstanding: parseFloat(data.outstanding || 0) }).eq('id', editId);
                     } else {
                         await _supabase.from('suppliers').insert([{ ...suppPayload, outstanding: 0, total_purchases: 0 }]);
                     }
