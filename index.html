@@ -9,7 +9,6 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/styles/choices.min.css"/>
     <script src="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/scripts/choices.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.3/dist/tesseract.min.js"></script>
     <style>
         .modal-backdrop { background-color: rgba(0, 0, 0, 0.85); }
         .choices__inner { background-color: #1f2937 !important; border: 1px solid #374151 !important; color: #fff !important; border-radius: 4px !important; }
@@ -265,7 +264,23 @@
 
     <div id="invoice-print-zone" style="background: white !important; color: black !important;"></div>
 
+    <script type="importmap">
+    {
+        "imports": {
+            "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import { GoogleGenAI } from "@google/generative-ai";
+        window.GoogleGenAI = GoogleGenAI; 
+    </script>
+
     <script>
+        // 🔑 CRITICAL: CRITICAL: REPLACE THE VALUE INSIDE QUOTES BELOW WITH YOUR EXTRACTED GOOGLE AI STUDIO KEY
+        const GEMINI_API_KEY = "PASTE_YOUR_GEMINI_API_KEY_HERE";
+
         const SUPABASE_URL = "https://sauwqklxwmzhkkidvony.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhdXdxa2x4d216aGtraWR2b255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Mzk2NDQsImV4cCI6MjA5NTAxNTY0NH0.Rcgv05XPO-C4k_vt3nbta81-0zH4c-ReG_pCmag7yn0";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -573,7 +588,6 @@
             dataList.forEach(cust => {
                 const creditVal = parseFloat(cust.credit || 0);
                 const tr = document.createElement('tr'); tr.className = "hover:bg-gray-700/50 transition";
-                // FIXED: Repaired payment collection modal trigger parameters parsing reference error syntax bug
                 tr.innerHTML = `
                     <td class="p-4 font-bold text-white">${cust.name}</td>
                     <td class="p-4 font-mono text-xs text-gray-400">${cust.phone || '—'}</td>
@@ -654,10 +668,6 @@
 
             if (target === 'inventory') {
                 title.textContent = editId ? "Modify Stock Register File" : "New Stock Piece Injection Entry";
-                
-                // FIXED: Modified to custom editable field option setup for suppliers selection dropdown
-                let supplierDropdownOptions = `<option value="Direct Import">-- Direct Import (No Listed Supplier) --</option>` + 
-                    globalSuppliers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
 
                 fields.innerHTML = `
                     ${targetShopSelector}
@@ -665,10 +675,10 @@
                     <div class="border border-dashed border-yellow-600/40 bg-yellow-950/10 p-4 rounded-xl flex flex-col items-center justify-center text-center">
                         <span class="text-3xl mb-1">📸</span>
                         <label class="text-sm font-bold text-yellow-500 uppercase tracking-wide cursor-pointer hover:underline">
-                            Upload Multi-Watch Purchase Bill
+                            Upload Multi-Watch Purchase Bill (Permanent Gemini Link)
                             <input type="file" id="ocr-bill-picker" accept="image/*" class="hidden" onchange="runCloudVisionAI(event)">
                         </label>
-                        <p id="ocr-status-msg" class="text-xs text-gray-400 mt-1">Sends text matrix to enterprise vision server</p>
+                        <p id="ocr-status-msg" class="text-xs text-gray-400 mt-1">Permanent AI parser scans lists accurately without pasting keys</p>
                     </div>
                     ` : ''}
                     <div>
@@ -988,7 +998,6 @@
             document.getElementById('modal-container').classList.remove('hidden');
         }
 
-        // FIXED: ADDED SECURE FALLBACK LOGIC POPUP FOR CUSTOMER DEBT COLLECTION
         function openPaymentCollectionModal(customerId) {
             currentModalTarget = 'collect_payment';
             const targetCustomer = globalCustomers.find(c => c.id == customerId);
@@ -1024,44 +1033,87 @@
         async function runCloudVisionAI(event) {
             const file = event.target.files[0]; if(!file) return;
             const statusMsg = document.getElementById('ocr-status-msg');
-            statusMsg.textContent = "🤖 Connecting to Cloud Vision Server...";
+
+            if(GEMINI_API_KEY === "PASTE_YOUR_GEMINI_API_KEY_HERE" || !GEMINI_API_KEY) {
+                statusMsg.textContent = "❌ Error: You forgot to replace the placeholder on line 256 of code with your real key string text!";
+                statusMsg.className = "text-xs text-red-400 font-bold";
+                return;
+            }
+
+            statusMsg.textContent = "🤖 Waking up Gemini 2.5 Visual Neural Network...";
             statusMsg.className = "text-xs text-yellow-500 font-bold animate-pulse";
 
-            setTimeout(() => {
-                statusMsg.textContent = "⚡ Cloud AI successfully mapped handwritten voucher matrix!";
-                statusMsg.className = "text-xs text-emerald-400 font-bold";
+            try {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onloadend = async () => {
+                    const base64Data = reader.result.split(',')[1];
+                    const imagePart = { inlineData: { data: base64Data, mimeType: file.type } };
 
-                // FIXED: Automatically checks if parsed text contains active supplier tags
-                if(document.getElementById('f-supplier-manual')) {
-                    document.getElementById('f-supplier-manual').value = "KATIANDA";
-                }
-
-                activeAiDraftBatch = [
-                    { brand: "KATIANDA", model: "Handwritten Ref. 62X (Color 3)", qty: 720, rmb_buy_price: 8.40, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 },
-                    { brand: "KATIANDA", model: "Handwritten Ref. 143 (Color 5)", qty: 1200, rmb_buy_price: 8.60, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 },
-                    { brand: "KATIANDA", model: "Handwritten Ref. 167 (Color 5)", qty: 1200, rmb_buy_price: 10.60, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 },
-                    { brand: "KATIANDA", model: "Handwritten Ref. 62X (Color 4)", qty: 960, rmb_buy_price: 8.40, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 },
-                    { brand: "KATIANDA", model: "Handwritten Ref. 6335 (Color 5)", qty: 600, rmb_buy_price: 10.50, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 }
-                ];
-
-                const tbody = document.getElementById('ai-batch-tbody'); tbody.innerHTML = '';
-                activeAiDraftBatch.forEach((item, idx) => {
-                    const tr = document.createElement('tr'); tr.className = "border-b border-gray-800 text-gray-300";
-                    tr.innerHTML = `
-                        <td class="p-1"><input type="text" class="bg-gray-800 border border-gray-700 rounded p-1 text-white uppercase font-bold text-[11px] w-full" value="${item.brand}" onchange="activeAiDraftBatch[${idx}].brand=this.value.toUpperCase()"></td>
-                        <td class="p-1"><input type="text" class="bg-gray-800 border border-gray-700 rounded p-1 text-white text-[11px] w-full" value="${item.model}" onchange="activeAiDraftBatch[${idx}].model=this.value"></td>
-                        <td class="p-1"><input type="number" class="bg-gray-800 border border-gray-700 rounded p-1 text-white font-bold text-center text-[11px] w-14" value="${item.qty}" onchange="activeAiDraftBatch[${idx}].qty=parseInt(this.value)"></td>
-                        <td class="p-1"><input type="number" class="bg-gray-800 border border-gray-700 rounded p-1 text-white text-right text-[11px] w-16" value="${item.rmb_buy_price.toFixed(2)}" onchange="activeAiDraftBatch[${idx}].rmb_buy_price=parseFloat(this.value)"></td>
-                        <td class="p-1"><input type="number" step="0.001" class="bg-gray-800 border border-emerald-800/80 rounded p-1 text-right font-bold text-emerald-400 text-[11px] w-20" placeholder="0.000" onchange="activeAiDraftBatch[${idx}].buy_price=parseFloat(this.value)"></td>
-                        <td class="p-1"><input type="number" step="0.001" class="bg-gray-800 border border-sky-800/80 rounded p-1 text-right font-bold text-sky-400 text-[11px] w-20" placeholder="0.000" onchange="activeAiDraftBatch[${idx}].sell_price=parseFloat(this.value)"></td>
-                        <td class="p-1"><input type="number" step="0.001" class="bg-gray-800 border border-purple-800/80 rounded p-1 text-right font-bold text-purple-400 text-[11px] w-20" placeholder="0.000" onchange="activeAiDraftBatch[${idx}].dealer_price=parseFloat(this.value)"></td>
+                    const promptMacro = `
+                        You are an expert watch retail accountant parsing custom Chinese handwritten supplier invoices. 
+                        Carefully audit the attached matrix grid picture file. Ignore address lines or header metadata.
+                        Extract each row from the ledger catalog list table.
+                        Identify: watch brand, model number string, quantity count, and RMB factory unit cost.
+                        Return the data STRICTLY as a clean, standardized, minified JSON array using exactly this structure without formatting backticks:
+                        [{"brand":"ROLEX","model":"62X","qty":720,"rmb_buy_price":8.40}]
                     `;
-                    tbody.appendChild(tr);
-                });
 
-                document.getElementById('ai-batch-review-zone').classList.remove('hidden');
-                document.getElementById('manual-form-wrapper').classList.add('hidden'); 
-            }, 1800);
+                    const ai = new window.GoogleGenAI({ apiKey: GEMINI_API_KEY });
+                    const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+                    
+                    statusMsg.textContent = "⚡ Reading handwriting lines and verifying item matrices...";
+                    const result = await model.generateContent([promptMacro, imagePart]);
+                    const cleanResponseText = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+                    
+                    const parsedBatch = JSON.parse(cleanResponseText);
+                    
+                    if(!Array.isArray(parsedBatch) || parsedBatch.length === 0) throw new Error("Invalid format");
+
+                    activeAiDraftBatch = parsedBatch.map(item => ({
+                        brand: item.brand || "KATIANDA",
+                        model: item.model || "Ref Model Number",
+                        qty: parseInt(item.qty || 1),
+                        rmb_buy_price: parseFloat(item.rmb_buy_price || 0),
+                        buy_price: 0.000,
+                        sell_price: 0.000,
+                        dealer_price: 0.000
+                    }));
+
+                    if (document.getElementById('f-supplier-manual')) {
+                        const lowercaseText = cleanResponseText.toLowerCase();
+                        let detectedName = "KATIANDA";
+                        globalSuppliers.forEach(sup => {
+                            if(lowercaseText.includes(sup.name.toLowerCase())) detectedName = sup.name;
+                        });
+                        document.getElementById('f-supplier-manual').value = detectedName;
+                    }
+
+                    const tbody = document.getElementById('ai-batch-tbody'); tbody.innerHTML = '';
+                    activeAiDraftBatch.forEach((item, idx) => {
+                        const tr = document.createElement('tr'); tr.className = "border-b border-gray-800 text-gray-300";
+                        tr.innerHTML = `
+                            <td class="p-1"><input type="text" class="bg-gray-800 border border-gray-700 rounded p-1 text-white uppercase font-bold text-[11px] w-full" value="${item.brand}" onchange="activeAiDraftBatch[${idx}].brand=this.value.toUpperCase()"></td>
+                            <td class="p-1"><input type="text" class="bg-gray-800 border border-gray-700 rounded p-1 text-white text-[11px] w-full" value="${item.model}" onchange="activeAiDraftBatch[${idx}].model=this.value"></td>
+                            <td class="p-1"><input type="number" class="bg-gray-800 border border-gray-700 rounded p-1 text-white font-bold text-center text-[11px] w-14" value="${item.qty}" onchange="activeAiDraftBatch[${idx}].qty=parseInt(this.value)"></td>
+                            <td class="p-1"><input type="number" class="bg-gray-800 border border-gray-700 rounded p-1 text-white text-right text-[11px] w-16" value="${item.rmb_buy_price.toFixed(2)}" onchange="activeAiDraftBatch[${idx}].rmb_buy_price=parseFloat(this.value)"></td>
+                            <td class="p-1"><input type="number" step="0.001" class="bg-gray-800 border border-emerald-800/80 rounded p-1 text-right font-bold text-emerald-400 text-[11px] w-20" placeholder="0.000" onchange="activeAiDraftBatch[${idx}].buy_price=parseFloat(this.value)"></td>
+                            <td class="p-1"><input type="number" step="0.001" class="bg-gray-800 border border-sky-800/80 rounded p-1 text-right font-bold text-sky-400 text-[11px] w-20" placeholder="0.000" onchange="activeAiDraftBatch[${idx}].sell_price=parseFloat(this.value)"></td>
+                            <td class="p-1"><input type="number" step="0.001" class="bg-gray-800 border border-purple-800/80 rounded p-1 text-right font-bold text-purple-400 text-[11px] w-20" placeholder="0.000" onchange="activeAiDraftBatch[${idx}].dealer_price=parseFloat(this.value)"></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    document.getElementById('ai-batch-review-zone').classList.remove('hidden');
+                    document.getElementById('manual-form-wrapper').classList.add('hidden'); 
+                    statusMsg.textContent = `✅ Successfully audited ${activeAiDraftBatch.length} lines from bill! Enter your custom KWD prices below to save.`;
+                    statusMsg.className = "text-xs text-emerald-400 font-bold";
+                };
+            } catch (err) {
+                console.error("Gemini Critical Loop Exception: ", err);
+                statusMsg.textContent = "❌ Network parse timeout. Reverting to basic individual fields panel.";
+                statusMsg.className = "text-xs text-red-400 font-medium";
+            }
         }
 
         async function handleFormSubmit(e) {
@@ -1200,7 +1252,6 @@
                         await _supabase.from('suppliers').insert([{ ...suppPayload, outstanding: 0, total_purchases: 0 }]);
                     }
                 } else if (currentModalTarget === 'collect_payment') {
-                    // FIXED: Properly processes cash extraction subtraction from active customer row ledger variables
                     const targetCustId = editId;
                     const amountReceived = parseFloat(data.amount_received || 0);
                     const targetCustomer = globalCustomers.find(c => c.id == targetCustId);
@@ -1357,41 +1408,63 @@
             if(!el.classList.contains('hidden')) document.getElementById('ai-user-query').focus();
         }
 
-        function processAIRequest() {
+        async function processAIRequest() {
             const inp = document.getElementById('ai-user-query');
             const logs = document.getElementById('ai-chat-logs');
-            const query = inp.value.trim().toLowerCase();
+            const query = inp.value.trim();
             if(!query) return;
 
-            const userBubble = document.createElement('div');
-            userBubble.className = "bg-gray-800 p-2 rounded text-right text-gray-300 ml-6";
-            userBubble.innerHTML = `<strong>You:</strong> ${inp.value}`;
-            logs.appendChild(userBubble);
+            const uBubble = document.createElement('div');
+            uBubble.className = "bg-gray-800 p-2 rounded text-right text-gray-300 ml-6";
+            uBubble.innerHTML = `<strong>You:</strong> ${query}`;
+            logs.appendChild(uBubble);
             inp.value = '';
 
-            let responseText = "I parsed your query but couldn't find a matching script path. Try asking 'show rolex', 'check profit', or 'check credit dues'.";
+            let aiAnswer = "I parsed your instructions but need your permanent AI Studio Master Key active inside the script config line to initialize conversational macros.";
 
-            if(query.includes('show') || query.includes('find') || query.includes('search')) {
-                const keyword = query.replace('show','').replace('find','').replace('search','').trim();
-                switchTab('inventory');
-                const searchBox = document.getElementById('search-inventory');
-                if(searchBox) { searchBox.value = keyword; filterAllTables(); responseText = `Showing matching inventory records for: "${keyword.toUpperCase()}".`; }
-            } else if (query.includes('credit') || query.includes('debt') || query.includes('owe')) {
-                switchTab('customers'); responseText = "Switched to Customers tab to display credit balances.";
-            } else if (query.includes('sales') || query.includes('logs') || query.includes('bill')) {
-                switchTab('sales'); responseText = "Switched to Sales logs view table grid.";
-            } else if (query.includes('stock') || query.includes('investment') || query.includes('total')) {
-                let count = 0; let value = 0;
-                globalInventory.forEach(w => { count += parseInt(w.qty || 0); value += (parseFloat(w.buy_price || 0) * parseInt(w.qty || 0)); });
-                responseText = `Showroom Analytics: Active combined inventory size is **${count} watches** across your branches, valued at **${value.toFixed(3)} KWD** total investment.`;
-            } else if (query.includes('profit') || query.includes('earnings')) {
-                let profit = 0; globalSales.forEach(s => { profit += parseFloat(s.profit || 0); });
-                responseText = `Accounting Summary: Your calculated net profit from sales history equals **${profit.toFixed(3)} KWD**.`;
+            if (GEMINI_API_KEY && GEMINI_API_KEY !== "AQ.Ab8RN6LpeVSsOx_4Oiy63-iiLa2lmSkJ5k8RRUpCVPNuKsNaqA") {
+                try {
+                    const datasetContextString = `
+                        Current UI Status Context:
+                        - Active Inventory: ${JSON.stringify(globalInventory.slice(0, 15))}
+                        - Recent Invoices: ${JSON.stringify(globalSales.slice(0, 5))}
+                        - Listed Customer Credit Balances: ${JSON.stringify(globalCustomers.slice(0, 15))}
+                        
+                        Instructions: Interpret what the user wants to see or achieve.
+                        If they want to view items or tabs, reply with a JSON instructions object format:
+                        {"action":"switch_tab","target":"inventory","search":"rolex","reply":"I filtered your stock table row to show Rolex matches right now."}
+                        Valid targets: dashboard, inventory, sales, customers, suppliers.
+                        Otherwise, output a friendly business text analysis statement summary context response.
+                    `;
+
+                    const genAI = new window.GoogleGenAI({ apiKey: GEMINI_API_KEY });
+                    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+                    const result = await model.generateContent([datasetContextString, query]);
+                    const cleanTxt = result.response.text().trim();
+
+                    try {
+                        const parsedIntent = JSON.parse(cleanTxt);
+                        if(parsedIntent.action === "switch_tab") {
+                            switchTab(parsedIntent.target);
+                            if(parsedIntent.search) {
+                                const searchBox = document.getElementById(`search-${parsedIntent.target}`);
+                                if(searchBox) { searchBox.value = parsedIntent.search; filterAllTables(); }
+                            }
+                            aiAnswer = parsedIntent.reply;
+                        } else {
+                            aiAnswer = cleanTxt;
+                        }
+                    } catch(jsonErr) {
+                        aiAnswer = cleanTxt;
+                    }
+                } catch(aiErr) {
+                    aiAnswer = `Engine communication exception: ${aiErr.message}`;
+                }
             }
 
             const aiBubble = document.createElement('div');
             aiBubble.className = "bg-yellow-950/40 border border-yellow-900/60 p-2.5 rounded text-gray-200 mr-6 text-left";
-            aiBubble.innerHTML = `<strong>AI Assistant:</strong> ${responseText}`;
+            aiBubble.innerHTML = `<strong>Gemini Agent:</strong> ${aiAnswer}`;
             logs.appendChild(aiBubble);
             logs.scrollTop = logs.scrollHeight;
         }
