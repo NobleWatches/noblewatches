@@ -551,7 +551,7 @@
                     <td class="p-4 font-semibold text-emerald-400">${paid.toFixed(3)} KD</td>
                     <td class="p-4">${debtStatusBadge}</td>
                     ${isOwner ? `<td class="p-4 font-bold text-yellow-500">${parseFloat(sale.profit || 0).toFixed(3)} KD</td>` : ''}
-                    <td class="p-4 text-right space-x-1.5 min-w-[170px]">
+                    <td class="p-4 text-right flex items-center justify-end gap-1.5 min-w-[170px]">
                         <button onclick="printInvoice(${sale.id})" class="text-xs bg-gray-700 hover:bg-gray-600 font-bold px-2 py-1 rounded text-white transition border border-gray-600 cursor-pointer">🖨️ Print</button>
                         <button onclick="openModal('sales', ${sale.id})" class="text-yellow-500 hover:text-yellow-400 text-xs font-bold px-2 py-1 bg-yellow-950/40 rounded border border-yellow-900/60 transition cursor-pointer">✏️ Edit</button>
                         ${isOwner ? `<button onclick="confirmDeleteRecord('sales', ${sale.id})" class="text-red-500 hover:text-red-400 text-xs font-bold px-2 py-1 bg-red-950/40 rounded border border-red-900/60 transition cursor-pointer">Delete</button>` : ''}
@@ -578,7 +578,7 @@
                     <td class="p-4"><span class="px-2 py-0.5 rounded text-xs font-semibold ${cust.type === 'Dealer' ? 'bg-purple-950 text-purple-400 border border-purple-900' : 'bg-blue-950 text-blue-400 border border-blue-900'}">${cust.type || 'Retail'}</span></td>
                     <td class="p-4 font-medium text-gray-300">${parseInt(cust.paid || 0).toLocaleString()} Purchases</td>
                     <td class="p-4 font-bold text-md ${creditVal > 0 ? 'text-red-400' : 'text-gray-500'}">${creditVal.toFixed(3)} KD</td>
-                    <td class="p-4 text-right space-x-1.5">
+                    <td class="p-4 text-right flex justify-end gap-1.5">
                         <button onclick="openPaymentCollectionModal(${cust.id})" class="text-xs bg-emerald-700 hover:bg-emerald-600 font-bold px-2.5 py-1 rounded text-white transition cursor-pointer">💵 Receive</button>
                         <button onclick="openModal('customers', ${cust.id})" class="text-yellow-500 hover:text-yellow-400 text-xs font-bold px-2 py-1 bg-yellow-950/40 rounded border border-yellow-900/60 transition cursor-pointer">✏️ Edit</button>
                         ${isOwner ? `<button onclick="confirmDeleteRecord('customers', ${cust.id})" class="text-red-500 hover:text-red-400 text-xs font-bold px-2 py-1 bg-red-950/40 rounded border border-red-900/60 transition cursor-pointer">Delete</button>` : ''}
@@ -612,7 +612,6 @@
             });
         }
 
-        // FIXED: ADDED COMPREHENSIVE RE-MUTATION MATRIX AND ROW INJECTION HOOKS FOR GLOBAL EDITS
         function openModal(target, editId = null) {
             currentModalTarget = target; 
             triggerPrintPostSave = false; 
@@ -625,7 +624,6 @@
             editIdInput.value = editId || '';
             const isOwner = (currentRole === 'owner');
             
-            // Locate data object if in edit mode
             let existingRecord = null;
             if (editId) {
                 if (target === 'inventory') existingRecord = globalInventory.find(i => i.id == editId);
@@ -634,7 +632,6 @@
                 if (target === 'suppliers') existingRecord = globalSuppliers.find(s => s.id == editId);
             }
 
-            // Restore primary basic dual-button save controls
             footerZone.innerHTML = `
                 <button type="button" onclick="closeModal()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-4 py-2 rounded text-sm transition cursor-pointer">Cancel</button>
                 <button type="submit" id="btn-submit-primary" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-5 py-2 rounded text-sm transition cursor-pointer">Save Database Entry</button>
@@ -656,10 +653,8 @@
                 let supplierDropdownOptions = `<option value="Direct Import">-- Direct Import (No Listed Supplier) --</option>` + 
                     globalSuppliers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
 
-                // FIXED: Inject AI Bill OCR Reader Image upload box wrapper inside Stock modal view
                 fields.innerHTML = `
                     ${targetShopSelector}
-                    
                     ${!editId ? `
                     <div class="border border-dashed border-yellow-600/30 bg-yellow-950/10 p-3 rounded-lg flex flex-col items-center justify-center text-center">
                         <span class="text-xl mb-1">📸</span>
@@ -670,12 +665,10 @@
                         <p id="ocr-status-msg" class="text-[10px] text-gray-400 mt-1">Parses text parameters & sets cost fields instantly</p>
                     </div>
                     ` : ''}
-
                     <div>
                         <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Inventory Registration Date</label>
                         <input type="date" name="custom_date" id="f-date" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" required>
                     </div>
-
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Brand Name</label>
@@ -719,7 +712,6 @@
                         </div>
                     </div>`;
 
-                // Set default date array or fill parameters if editing
                 if(existingRecord) {
                     document.getElementById('f-brand').value = existingRecord.brand;
                     document.getElementById('f-model').value = existingRecord.model;
@@ -730,7 +722,6 @@
                     document.getElementById('f-sell').value = existingRecord.sell_price;
                     document.getElementById('f-dealer').value = existingRecord.dealer_price;
                     if(isOwner) document.getElementById('f-shop').value = existingRecord.shop;
-                    // Format timestamp value to match browser HTML date selectors
                     document.getElementById('f-date').value = existingRecord.created_at ? existingRecord.created_at.slice(0,10) : new Date().toISOString().slice(0,10);
                 } else {
                     document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
@@ -739,7 +730,7 @@
             } else if (target === 'sales') {
                 title.textContent = editId ? "Edit Sales Register Receipt Entry" : "Record Sale Invoice Transaction";
                 let currentSalesRoleShop = (currentRole === 'owner') ? document.getElementById('owner-shop-filter').value : currentRole;
-                let activeAvailableWatches = globalInventory; // allow matching all rows when editing records
+                let activeAvailableWatches = globalInventory;
                 if (!editId) activeAvailableWatches = globalInventory.filter(w => w.qty > 0);
                 
                 if (currentSalesRoleShop !== 'all' && !editId) {
@@ -750,7 +741,6 @@
                     `<option value="${w.id}">[Shop ${w.shop}] ${w.brand.toUpperCase()} - ${w.model} (Stock: ${w.qty} pcs)</option>`
                 ).join('');
 
-                // FIXED: Appended dual options button array ("Save" vs "Save and Print") to sales modal workspace footer zone
                 footerZone.innerHTML = `
                     <button type="button" onclick="closeModal()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-4 py-2 rounded text-sm transition cursor-pointer">Cancel</button>
                     <button type="submit" onclick="triggerPrintPostSave=false" class="bg-gray-700 hover:bg-gray-600 text-white font-bold px-4 py-2 rounded text-sm transition cursor-pointer">Save Entry Only</button>
@@ -763,7 +753,6 @@
                         <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Invoice Accounting Date</label>
                         <input type="date" id="f-sale-date" name="custom_date" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" required>
                     </div>
-
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-yellow-500 tracking-wide">Customer Pricing Tier</label>
@@ -857,14 +846,12 @@
                     discountInp.addEventListener('input', runFormAutofillFields);
 
                     if(existingRecord) {
-                        // Hydrate edit properties safely
                         qtyInp.value = existingRecord.qty;
                         priceInp.value = parseFloat(existingRecord.sell_price).toFixed(3);
                         discountInp.value = parseFloat(existingRecord.discount || 0).toFixed(3);
                         paidInp.value = parseFloat(existingRecord.paid || 0).toFixed(3);
                         document.getElementById('f-s-paymode').value = existingRecord.payment;
                         
-                        // Map linked customer details row if matching
                         if (existingRecord.customer_id) {
                             const cObj = globalCustomers.find(c => c.id == existingRecord.customer_id);
                             if(cObj) {
@@ -874,7 +861,6 @@
                             }
                         }
                         
-                        // Set choice targeting selection row
                         const matchedWatch = globalInventory.find(w => w.brand === existingRecord.brand && w.model === existingRecord.model);
                         if(matchedWatch) choicesInstance.setChoiceByValue(String(matchedWatch.id));
                         
@@ -972,7 +958,21 @@
             document.getElementById('modal-container').classList.remove('hidden');
         }
 
-        // FIXED: AUTOMATED FRONT-END INTELLIGENT INVOICE OCR BILL READER PROCESSING ENGINE
+        // FIXED: ADDED EXPLICIT CATCH PROTECTION WRAPPER TO DISENGAGE MODALS EVEN ON PARSE ERROR timeout
+        function closeModal() { 
+            try {
+                if (choicesInstance) {
+                    choicesInstance.destroy();
+                    choicesInstance = null; 
+                }
+            } catch(err) {
+                console.warn("Dropdown context cleared cleanly");
+            }
+            document.getElementById('modal-container').classList.add('hidden'); 
+            document.getElementById('data-form').reset(); 
+            document.getElementById('form-edit-id').value = '';
+        }
+
         async function runAIInvoiceOCR(event) {
             const file = event.target.files[0]; if(!file) return;
             const statusMsg = document.getElementById('ocr-status-msg');
@@ -980,7 +980,6 @@
             statusMsg.className = "text-[10px] text-yellow-500 font-bold animate-pulse";
 
             try {
-                // Initialize clean web-worker thread execution pipeline
                 const worker = await Tesseract.createWorker('eng');
                 const ret = await worker.recognize(file);
                 const text = ret.data.text;
@@ -994,14 +993,12 @@
                 let detectedQty = 1;
                 let detectedRmbPrice = 0.00;
 
-                // Simple natural parsing matching lookup over text document matrix lines
                 cleanLines.forEach(line => {
                     if(line.includes("PATEK") || line.includes("PP")) detectedBrand = "PATEK PHILIPPE";
                     else if(line.includes("AUDEMARS") || line.includes("AP")) detectedBrand = "AUDEMARS PIGUET";
                     else if(line.includes("CARTIER")) detectedBrand = "CARTIER";
                     else if(line.includes("OMEGA")) detectedBrand = "OMEGA";
                     
-                    // Match pattern keys for digits, prices, or batch quantities
                     const qtyMatch = line.match(/(?:QTY|QUANTITY|PCS)[:\s]+(\d+)/);
                     if(qtyMatch) detectedQty = parseInt(qtyMatch[1]);
                     
@@ -1009,7 +1006,6 @@
                     if(priceMatch) detectedRmbPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
                 });
 
-                // Hydrate inputs directly inside stock active document workspace frame view
                 if(document.getElementById('f-brand')) document.getElementById('f-brand').value = detectedBrand;
                 if(document.getElementById('f-model')) document.getElementById('f-model').value = detectedModel;
                 if(document.getElementById('f-qty')) document.getElementById('f-qty').value = detectedQty;
@@ -1036,7 +1032,6 @@
                     data.watch_id = document.getElementById('sale-watch-select').value;
                 }
 
-                // Append explicit timestamp format if date box configuration is provided
                 const timestampPayload = data.custom_date ? { created_at: new Date(data.custom_date).toISOString() } : {};
 
                 if (currentModalTarget === 'inventory') {
@@ -1051,7 +1046,6 @@
                     if (editId) {
                         await _supabase.from('inventory').update(payload).eq('id', editId);
                     } else {
-                        // Check merging logic for new insertions
                         const { data: currentInv } = await _supabase.from('inventory').select('*');
                         const existingItem = (currentInv || []).find(item => 
                             item.shop === payload.shop && 
@@ -1117,7 +1111,6 @@
                     } else {
                         await _supabase.from('inventory').update({ qty: watch.qty - qtySold }).eq('id', watch.id);
                         const savedSaleRes = await _supabase.from('sales').insert([salePayload]).select();
-                        // If "Save & Print" button clicked, extract structural id parameters and call print frame execution 
                         if (triggerPrintPostSave && savedSaleRes.data && savedSaleRes.data.length > 0) {
                             setTimeout(() => { printInvoice(savedSaleRes.data[0].id); }, 600);
                         }
@@ -1140,7 +1133,6 @@
                 }
 
                 closeModal(); 
-                document.getElementById('modal-container').classList.add('hidden');
                 await loadData();
             } catch (error) {
                 console.error("Form Exception Caught: ", error);
@@ -1232,8 +1224,8 @@
                             <tr style="background-color: #f3f4f6; border-bottom: 2px solid #000; font-weight: bold; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">
                                 <th style="padding: 8px; border: 1px solid #000;">Watch Model Description</th>
                                 <th style="padding: 8px; border: 1px solid #000; text-align: center; width: 70px;">Qty</th>
-                                <th style="padding: 8px; border: 1px solid #000; text-align: right; width: 110px;">Unit Price</th>
-                                <th style="padding: 8px; border: 1px solid #000; text-align: right; width: 140px;">Gross Total</th>
+                                <th style="padding: 8px; border: 1px solid #000; text-align: right; width: 110px;">Unit Rate</th>
+                                <th style="padding: 8px; border: 1px solid #000; text-align: right; width: 130px;">Gross Total</th>
                             </tr>
                         </thead>
                         <tbody>
