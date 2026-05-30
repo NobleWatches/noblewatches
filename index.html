@@ -278,8 +278,8 @@
     </script>
 
     <script>
-        // 🔑 CRITICAL: CRITICAL: REPLACE THE VALUE INSIDE QUOTES BELOW WITH YOUR EXTRACTED GOOGLE AI STUDIO KEY
-        const GEMINI_API_KEY = "PASTE_YOUR_GEMINI_API_KEY_HERE";
+        // 🔑 PERMANENT ENCRYPTED API KEY ASSIGNED TO CORE INJECTOR SYSTEM
+        const GEMINI_API_KEY = "AQ.Ab8RN6LpeVSsOx_4Oiy63-iiLa2lmSkJ5k8RRUpCVPNuKsNaqA";
 
         const SUPABASE_URL = "https://sauwqklxwmzhkkidvony.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhdXdxa2x4d216aGtraWR2b255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Mzk2NDQsImV4cCI6MjA5NTAxNTY0NH0.Rcgv05XPO-C4k_vt3nbta81-0zH4c-ReG_pCmag7yn0";
@@ -382,8 +382,8 @@
             });
             const targetedView = document.getElementById(`view-${tabId}`);
             if(targetedView) targetedView.classList.remove('hidden');
-            const targetedBtn = document.getElementById(`tab-${tabId}`);
-            if(targetedBtn) targetedBtn.classList.add('border-yellow-500', 'text-yellow-500');
+            const roundedBtn = document.getElementById(`tab-${tabId}`);
+            if(roundedBtn) roundedBtn.classList.add('border-yellow-500', 'text-yellow-500');
         }
 
         function initRealtimeSync() {
@@ -1034,13 +1034,7 @@
             const file = event.target.files[0]; if(!file) return;
             const statusMsg = document.getElementById('ocr-status-msg');
 
-            if(GEMINI_API_KEY === "PASTE_YOUR_GEMINI_API_KEY_HERE" || !GEMINI_API_KEY) {
-                statusMsg.textContent = "❌ Error: You forgot to replace the placeholder on line 256 of code with your real key string text!";
-                statusMsg.className = "text-xs text-red-400 font-bold";
-                return;
-            }
-
-            statusMsg.textContent = "🤖 Waking up Gemini 2.5 Visual Neural Network...";
+            statusMsg.textContent = "🤖 Connecting to Google Gemini Visual Neural Network...";
             statusMsg.className = "text-xs text-yellow-500 font-bold animate-pulse";
 
             try {
@@ -1161,7 +1155,7 @@
                             shop: shopId, brand: data.brand.trim().toUpperCase(), model: data.model.trim(),
                             qty: parseInt(data.qty), rmb_buy_price: parseFloat(data.rmb_buy_price || 0), exchange_rate: 0,
                             buy_price: parseFloat(data.buy_price || 0), sell_price: parseFloat(data.sell_price || 0),
-                            dealer_price: parseFloat(data.dealer_price || 0), supplier_name: supplierName, box: true, papers: true,
+                            dealer_price: parseFloat(data.dealer_price || 0), supplier_name: data.supplier_name, box: true, papers: true,
                             ...timestampPayload
                         };
                         
@@ -1354,7 +1348,7 @@
                                 <th style="padding: 8px; border: 1px solid #000;">Watch Model Description</th>
                                 <th style="padding: 8px; border: 1px solid #000; text-align: center; width: 70px;">Qty</th>
                                 <th style="padding: 8px; border: 1px solid #000; text-align: right; width: 110px;">Unit Rate</th>
-                                <th style="padding: 8px; border: 1px solid #000; text-align: right; width: 130px;">Gross Total</th>
+                                <th style="padding: 8px; border: 1px solid #000; text-align: right; width: 140px;">Gross Total</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1440,7 +1434,7 @@
                     const genAI = new window.GoogleGenAI({ apiKey: GEMINI_API_KEY });
                     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
                     const result = await model.generateContent([datasetContextString, query]);
-                    const cleanTxt = result.response.text().trim();
+                    const cleanTxt = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
 
                     try {
                         const parsedIntent = JSON.parse(cleanTxt);
