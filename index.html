@@ -26,6 +26,7 @@
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen font-sans">
 
+    <!-- LOGIN SCREEN -->
     <div id="login-screen" class="flex items-center justify-center min-h-screen px-4">
         <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-700">
             <h1 class="text-2xl font-bold text-center mb-2 text-yellow-500">Al Wadi Watches</h1>
@@ -48,6 +49,7 @@
         </div>
     </div>
 
+    <!-- MAIN APP SCREEN -->
     <div id="app-screen" class="hidden flex flex-col min-h-screen">
         <header class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex flex-wrap justify-between items-center gap-4">
             <div class="flex items-center gap-3">
@@ -80,10 +82,12 @@
             <button onclick="switchTab('sales')" id="tab-sales" class="px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-400 hover:text-white focus:outline-none whitespace-nowrap cursor-pointer">Sales Logs</button>
             <button onclick="switchTab('customers')" id="tab-customers" class="px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-400 hover:text-white focus:outline-none whitespace-nowrap cursor-pointer">Customers Credit</button>
             <button onclick="switchTab('suppliers')" id="tab-suppliers" class="hidden px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-400 hover:text-white focus:outline-none whitespace-nowrap cursor-pointer">Suppliers Ledger</button>
+            <button onclick="switchTab('reports')" id="tab-reports" class="hidden px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-400 hover:text-white focus:outline-none whitespace-nowrap cursor-pointer">Financial Reports 📊</button>
         </nav>
 
         <main class="flex-1 p-6 max-w-7xl w-full mx-auto">
             
+            <!-- DASHBOARD VIEW -->
             <section id="view-dashboard" class="space-y-6">
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="bg-gray-800 p-5 rounded-xl border border-gray-700">
@@ -109,6 +113,7 @@
                 </div>
             </section>
 
+            <!-- INVENTORY VIEW -->
             <section id="view-inventory" class="hidden space-y-4">
                 <div class="flex flex-wrap gap-3 justify-between items-center">
                     <div class="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded px-3 py-2 w-full max-w-md">
@@ -138,6 +143,7 @@
                 </div>
             </section>
 
+            <!-- SALES VIEW -->
             <section id="view-sales" class="hidden space-y-4">
                 <div class="flex flex-wrap gap-3 justify-between items-center">
                     <div class="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded px-3 py-2 w-full max-w-md">
@@ -167,6 +173,7 @@
                 </div>
             </section>
 
+            <!-- CUSTOMERS VIEW -->
             <section id="view-customers" class="hidden space-y-4">
                 <div class="flex flex-wrap gap-3 justify-between items-center">
                     <div class="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded px-3 py-2 w-full max-w-md">
@@ -192,6 +199,7 @@
                 </div>
             </section>
 
+            <!-- SUPPLIERS VIEW -->
             <section id="view-suppliers" class="hidden space-y-4">
                 <div class="flex flex-wrap gap-3 justify-between items-center">
                     <div class="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded px-3 py-2 w-full max-w-md">
@@ -217,9 +225,96 @@
                 </div>
             </section>
 
+            <!-- FINANCIAL REPORTS HUB VIEW -->
+            <section id="view-reports" class="hidden space-y-6">
+                <!-- CONTROLS & FILTER BAR -->
+                <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Time Preset</label>
+                            <select id="report-date-preset" onchange="handleReportPresetChange()" class="bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm text-white focus:outline-none">
+                                <option value="all">All Time History</option>
+                                <option value="today">Today</option>
+                                <option value="this_month" selected>This Month</option>
+                                <option value="this_year">This Year (YTD)</option>
+                                <option value="custom">Custom Date Range</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">From Date</label>
+                            <input type="date" id="report-date-from" onchange="generateFinancialReports()" class="bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm text-white font-mono focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">To Date</label>
+                            <input type="date" id="report-date-to" onchange="generateFinancialReports()" class="bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm text-white font-mono focus:outline-none">
+                        </div>
+                    </div>
+                    
+                    <button onclick="exportMasterFinancialPackage()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded text-sm transition cursor-pointer flex items-center gap-2">
+                        📁 Download Complete Financial Package (.xlsx)
+                    </button>
+                </div>
+
+                <!-- EXECUTIVE P&L CARDS -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Gross Sales Revenue</p>
+                        <h4 id="report-stat-revenue" class="text-2xl font-bold mt-1 text-white">0.000 KD</h4>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Cost of Goods Sold (COGS)</p>
+                        <h4 id="report-stat-cogs" class="text-2xl font-bold mt-1 text-sky-400">0.000 KD</h4>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Total Discounts Allowed</p>
+                        <h4 id="report-stat-discounts" class="text-2xl font-bold mt-1 text-red-400">0.000 KD</h4>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Net Realized Profit</p>
+                        <h4 id="report-stat-net-profit" class="text-2xl font-bold mt-1 text-yellow-500">0.000 KD</h4>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Profit Margin %</p>
+                        <h4 id="report-stat-margin" class="text-2xl font-bold mt-1 text-emerald-400">0.0%</h4>
+                    </div>
+                </div>
+
+                <!-- PRODUCT-WISE PROFIT & LOSS TABLE -->
+                <div class="bg-gray-800 rounded-xl border border-gray-700 p-5 space-y-4 shadow-xl">
+                    <div class="flex flex-wrap justify-between items-center gap-3">
+                        <div>
+                            <h3 class="text-lg font-bold text-yellow-500">Product-Wise Profit & Margin Ledger</h3>
+                            <p class="text-xs text-gray-400">Tracks revenue, cost breakdown, margin percentage, and financial health by watch model.</p>
+                        </div>
+                        <button onclick="exportProductPnLToExcel()" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold text-xs px-3 py-1.5 rounded transition cursor-pointer">
+                            📊 Export Product P&L
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[850px]">
+                            <thead>
+                                <tr class="bg-gray-700 text-gray-300 text-xs uppercase border-b border-gray-600">
+                                    <th class="p-3">Watch Brand</th>
+                                    <th class="p-3">Model Reference</th>
+                                    <th class="p-3 text-center">Units Sold</th>
+                                    <th class="p-3 text-right">Landed Cost (KWD)</th>
+                                    <th class="p-3 text-right">Gross Revenue (KWD)</th>
+                                    <th class="p-3 text-right">Net Profit (KWD)</th>
+                                    <th class="p-3 text-center">Margin %</th>
+                                    <th class="p-3 text-center">Performance Indicator</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-report-product-pnl" class="text-sm divide-y divide-gray-700 text-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
         </main>
     </div>
 
+    <!-- MAIN DATA FORM INPUT/EDIT MODAL CONTAINER -->
     <div id="modal-container" class="fixed inset-0 z-50 modal-backdrop hidden flex items-center justify-center p-4">
         <div class="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl max-w-4xl w-full overflow-hidden">
             <div class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex justify-between items-center">
@@ -319,6 +414,7 @@
             document.getElementById('owner-shop-filter-container').style.display = isOwner ? 'block' : 'none';
             document.getElementById('backup-btn').style.display = isOwner ? 'block' : 'none';
             document.getElementById('tab-suppliers').style.display = isOwner ? 'block' : 'none';
+            document.getElementById('tab-reports').style.display = isOwner ? 'block' : 'none';
             document.getElementById('card-stock-value').style.display = isOwner ? 'block' : 'none';
             document.getElementById('card-profit').style.display = isOwner ? 'block' : 'none';
             document.getElementById('th-buy-price-rmb').style.display = isOwner ? 'table-cell' : 'none';
@@ -335,7 +431,7 @@
         function switchTab(tabId) {
             activeTab = tabId;
             sessionStorage.setItem('aw_tab', tabId);
-            ['dashboard', 'inventory', 'sales', 'customers', 'suppliers'].forEach(t => {
+            ['dashboard', 'inventory', 'sales', 'customers', 'suppliers', 'reports'].forEach(t => {
                 const view = document.getElementById(`view-${t}`);
                 const btn = document.getElementById(`tab-${t}`);
                 if(view) view.classList.add('hidden');
@@ -345,6 +441,10 @@
             if(targetedView) targetedView.classList.remove('hidden');
             const targetBtn = document.getElementById('tab-' + tabId);
             if(targetBtn) targetBtn.classList.add('border-yellow-500', 'text-yellow-500');
+
+            if (tabId === 'reports') {
+                handleReportPresetChange();
+            }
         }
 
         function initRealtimeSync() {
@@ -403,6 +503,10 @@
 
             calculateMetricsSummary();
             filterAllTables();
+
+            if (activeTab === 'reports') {
+                generateFinancialReports();
+            }
         }
 
         function calculateMetricsSummary() {
@@ -630,7 +734,6 @@
             if (target === 'inventory') {
                 title.textContent = editId ? "Modify Stock Register File" : "New Stock Piece Injection Entry";
 
-                // FIXED: Changed template dropzone layout into a direct interactive sheet initialization matrix area
                 fields.innerHTML = `
                     ${targetShopSelector}
                     ${!editId ? `
@@ -644,6 +747,7 @@
                         <input type="date" name="custom_date" id="f-date" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white text-sm font-mono" required>
                     </div>
 
+                    <!-- RECOGNITION MANIFEST MATRIX VIEW -->
                     <div id="ai-batch-review-zone" class="hidden space-y-3">
                         <div class="flex items-center justify-between">
                             <p class="text-xs font-bold text-yellow-500 uppercase tracking-wide">Multi-Watch Shipment Review Matrix</p>
@@ -915,7 +1019,6 @@
 
             } else if (target === 'suppliers') {
                 title.textContent = editId ? "Edit Registered Supply Factory Details" : "Register New Supply Vendor Resource";
-                // FIXED: Repaired name parameter mapping string array indexes to resolve the freezing locked field issue
                 fields.innerHTML = `
                     <div>
                         <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Supplier/Company Name</label>
@@ -1010,12 +1113,10 @@
             tbody.appendChild(tr);
         }
 
-        // FIXED: CLEAN UN-BIASED SHEET WORKSPACE INITIALIZATION ROUTINE FOR ALL INTERNATIONAL SHIPMENTS
         window.initializeSpreadsheetMatrixReviewWorkspace = function() {
             document.getElementById('ocr-status-msg').textContent = "📊 Blank Review Grid Initialized Successfully.";
             document.getElementById('ocr-status-msg').className = "text-xs text-emerald-400 font-bold";
 
-            // Starts with an elegant, customizable 3-row starting template
             activeAiDraftBatch = [
                 { brand: "ROLEX", model: "Watch Model Item Line 1", qty: 10, rmb_buy_price: 0.00, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 },
                 { brand: "ROLEX", model: "Watch Model Item Line 2", qty: 5, rmb_buy_price: 0.00, buy_price: 0.000, sell_price: 0.000, dealer_price: 0.000 },
@@ -1056,7 +1157,6 @@
 
                 if (currentModalTarget === 'inventory') {
                     const shopId = parseInt(data.shop);
-                    // FIXED: Fallback context mapping extracts text parameters from custom manual elements cleanly
                     const supplierName = document.getElementById('f-supplier-manual') ? document.getElementById('f-supplier-manual').value.trim() : (data.supplier_name || 'Direct Import');
 
                     if (activeAiDraftBatch && activeAiDraftBatch.length > 0) {
@@ -1168,7 +1268,7 @@
                     if (editId) {
                         await _supabase.from('customers').update({ ...custPayload, credit: parseFloat(data.credit || 0) }).eq('id', editId);
                     } else {
-                        await _supabase.from('customers').insert([{ ...custPayload, credit: 0, py: 0, paid: 0 }]);
+                        await _supabase.from('customers').insert([{ ...custPayload, credit: 0, paid: 0 }]);
                     }
                 } else if (currentModalTarget === 'suppliers') {
                     const suppPayload = { name: data.name.trim(), contact: data.contact.trim(), phone: data.phone.trim(), email: data.email.trim(), country: data.country.trim() };
@@ -1326,6 +1426,289 @@
                     </div>
                 </div>`;
             window.print();
+        }
+
+        // ================= FINANCIAL REPORT & EXCEL EXPORT ENGINE ================= //
+
+        function handleReportPresetChange() {
+            const preset = document.getElementById('report-date-preset').value;
+            const fromInput = document.getElementById('report-date-from');
+            const toInput = document.getElementById('report-date-to');
+            const now = new Date();
+
+            if (preset === 'all') {
+                fromInput.value = '';
+                toInput.value = '';
+            } else if (preset === 'today') {
+                const dateStr = now.toISOString().slice(0, 10);
+                fromInput.value = dateStr;
+                toInput.value = dateStr;
+            } else if (preset === 'this_month') {
+                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+                const lastDay = now.toISOString().slice(0, 10);
+                fromInput.value = firstDay;
+                toInput.value = lastDay;
+            } else if (preset === 'this_year') {
+                const firstDay = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
+                const lastDay = now.toISOString().slice(0, 10);
+                fromInput.value = firstDay;
+                toInput.value = lastDay;
+            }
+
+            generateFinancialReports();
+        }
+
+        function getFilteredReportSales() {
+            const fromStr = document.getElementById('report-date-from').value;
+            const toStr = document.getElementById('report-date-to').value;
+
+            const fromDate = fromStr ? new Date(fromStr + "T00:00:00") : null;
+            const toDate = toStr ? new Date(toStr + "T23:59:59") : null;
+
+            return globalSales.filter(sale => {
+                if (!sale.created_at) return true;
+                const sDate = new Date(sale.created_at);
+                if (fromDate && sDate < fromDate) return false;
+                if (toDate && sDate > toDate) return false;
+                return true;
+            });
+        }
+
+        function generateFinancialReports() {
+            const filteredSales = getFilteredReportSales();
+
+            let grossRevenue = 0;
+            let totalCogs = 0;
+            let totalDiscounts = 0;
+            let netProfit = 0;
+
+            const productMap = {};
+
+            filteredSales.forEach(sale => {
+                const qty = parseInt(sale.qty || 1);
+                const unitSell = parseFloat(sale.sell_price || 0);
+                const unitBuy = parseFloat(sale.buy_price || 0);
+                const discount = parseFloat(sale.discount || 0);
+                
+                const grossLine = (unitSell * qty);
+                const cogsLine = (unitBuy * qty);
+                const netLineProfit = parseFloat(sale.profit || (grossLine - discount - cogsLine));
+
+                grossRevenue += grossLine;
+                totalCogs += cogsLine;
+                totalDiscounts += discount;
+                netProfit += netLineProfit;
+
+                const key = `${(sale.brand || 'GENERIC').toUpperCase()} - ${sale.model || 'Standard'}`;
+                if (!productMap[key]) {
+                    productMap[key] = {
+                        brand: (sale.brand || 'GENERIC').toUpperCase(),
+                        model: sale.model || 'Standard',
+                        qtySold: 0,
+                        cogs: 0,
+                        revenue: 0,
+                        netProfit: 0
+                    };
+                }
+
+                productMap[key].qtySold += qty;
+                productMap[key].cogs += cogsLine;
+                productMap[key].revenue += (grossLine - discount);
+                productMap[key].netProfit += netLineProfit;
+            });
+
+            const marginPct = grossRevenue > 0 ? ((netProfit / grossRevenue) * 100).toFixed(1) : "0.0";
+
+            document.getElementById('report-stat-revenue').textContent = grossRevenue.toFixed(3) + " KD";
+            document.getElementById('report-stat-cogs').textContent = totalCogs.toFixed(3) + " KD";
+            document.getElementById('report-stat-discounts').textContent = totalDiscounts.toFixed(3) + " KD";
+            document.getElementById('report-stat-net-profit').textContent = netProfit.toFixed(3) + " KD";
+            document.getElementById('report-stat-margin').textContent = marginPct + "%";
+
+            // Render Product-Wise P&L Table
+            const tbody = document.getElementById('table-report-product-pnl');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const productList = Object.values(productMap);
+            if (productList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-gray-500 italic">No sales logs found for the selected timeframe filter.</td></tr>`;
+                return;
+            }
+
+            productList.sort((a, b) => b.netProfit - a.netProfit);
+
+            productList.forEach(prod => {
+                const prodMargin = prod.revenue > 0 ? ((prod.netProfit / prod.revenue) * 100).toFixed(1) : "0.0";
+                
+                let perfBadge = `<span class="bg-emerald-950 text-emerald-400 border border-emerald-900 px-2 py-0.5 rounded-full text-xs font-bold">🟢 High Profit</span>`;
+                if (prod.netProfit < 0) {
+                    perfBadge = `<span class="bg-red-950 text-red-400 border border-red-900 px-2 py-0.5 rounded-full text-xs font-bold">🔴 Loss Leader</span>`;
+                } else if (parseFloat(prodMargin) < 15) {
+                    perfBadge = `<span class="bg-amber-950 text-amber-400 border border-amber-900 px-2 py-0.5 rounded-full text-xs font-bold">🟡 Low Margin</span>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-700/50 transition border-b border-gray-800";
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-yellow-500 uppercase">${prod.brand}</td>
+                    <td class="p-3 font-semibold text-white">${prod.model}</td>
+                    <td class="p-3 text-center font-bold text-gray-200">${prod.qtySold} pcs</td>
+                    <td class="p-3 text-right font-semibold text-sky-400">${prod.cogs.toFixed(3)} KD</td>
+                    <td class="p-3 text-right font-semibold text-white">${prod.revenue.toFixed(3)} KD</td>
+                    <td class="p-3 text-right font-bold ${prod.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}">${prod.netProfit.toFixed(3)} KD</td>
+                    <td class="p-3 text-center font-mono font-bold text-yellow-500">${prodMargin}%</td>
+                    <td class="p-3 text-center">${perfBadge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportProductPnLToExcel() {
+            if (currentRole !== 'owner') return alert("Access Denied.");
+            const filteredSales = getFilteredReportSales();
+            const productMap = {};
+
+            filteredSales.forEach(sale => {
+                const qty = parseInt(sale.qty || 1);
+                const unitSell = parseFloat(sale.sell_price || 0);
+                const unitBuy = parseFloat(sale.buy_price || 0);
+                const discount = parseFloat(sale.discount || 0);
+                
+                const grossLine = (unitSell * qty);
+                const cogsLine = (unitBuy * qty);
+                const netLineProfit = parseFloat(sale.profit || (grossLine - discount - cogsLine));
+
+                const key = `${(sale.brand || 'GENERIC').toUpperCase()} - ${sale.model || 'Standard'}`;
+                if (!productMap[key]) {
+                    productMap[key] = {
+                        "Watch Brand": (sale.brand || 'GENERIC').toUpperCase(),
+                        "Model Description": sale.model || 'Standard',
+                        "Units Sold": 0,
+                        "Total Landed Cost (KWD)": 0,
+                        "Gross Revenue (KWD)": 0,
+                        "Net Profit Realized (KWD)": 0
+                    };
+                }
+
+                productMap[key]["Units Sold"] += qty;
+                productMap[key]["Total Landed Cost (KWD)"] += cogsLine;
+                productMap[key]["Gross Revenue (KWD)"] += (grossLine - discount);
+                productMap[key]["Net Profit Realized (KWD)"] += netLineProfit;
+            });
+
+            const rows = Object.values(productMap).map(item => {
+                const rev = item["Gross Revenue (KWD)"];
+                const prof = item["Net Profit Realized (KWD)"];
+                const margin = rev > 0 ? ((prof / rev) * 100).toFixed(1) : "0.0";
+                return {
+                    ...item,
+                    "Profit Margin (%)": margin + "%"
+                };
+            });
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), "Product P&L Report");
+            XLSX.writeFile(workbook, `Al_Wadi_Product_PnL_Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        }
+
+        function exportMasterFinancialPackage() {
+            if (currentRole !== 'owner') return alert("Access Denied.");
+            
+            const filteredSales = getFilteredReportSales();
+
+            // 1. Executive P&L Summary
+            let grossRev = 0; let totalCogs = 0; let totalDisc = 0; let netProf = 0;
+            filteredSales.forEach(s => {
+                const qty = parseInt(s.qty || 1);
+                const grossLine = parseFloat(s.sell_price || 0) * qty;
+                const cogsLine = parseFloat(s.buy_price || 0) * qty;
+                const discLine = parseFloat(s.discount || 0);
+                grossRev += grossLine;
+                totalCogs += cogsLine;
+                totalDisc += discLine;
+                netProf += parseFloat(s.profit || (grossLine - discLine - cogsLine));
+            });
+
+            const summaryRows = [{
+                "Report Generated On": new Date().toLocaleString(),
+                "Gross Sales Revenue (KWD)": grossRev.toFixed(3),
+                "Cost of Goods Sold - COGS (KWD)": totalCogs.toFixed(3),
+                "Total Discounts Applied (KWD)": totalDisc.toFixed(3),
+                "Net Realized Profit (KWD)": netProf.toFixed(3),
+                "Overall Profit Margin (%)": (grossRev > 0 ? ((netProf / grossRev) * 100).toFixed(1) : "0.0") + "%"
+            }];
+
+            // 2. Product-wise P&L
+            const productMap = {};
+            filteredSales.forEach(sale => {
+                const qty = parseInt(sale.qty || 1);
+                const grossLine = parseFloat(sale.sell_price || 0) * qty;
+                const cogsLine = parseFloat(sale.buy_price || 0) * qty;
+                const discount = parseFloat(sale.discount || 0);
+                const netLineProfit = parseFloat(sale.profit || (grossLine - discount - cogsLine));
+
+                const key = `${(sale.brand || 'GENERIC').toUpperCase()} - ${sale.model || 'Standard'}`;
+                if (!productMap[key]) {
+                    productMap[key] = {
+                        "Brand": (sale.brand || 'GENERIC').toUpperCase(),
+                        "Model": sale.model || 'Standard',
+                        "Units Sold": 0,
+                        "Landed Cost (KWD)": 0,
+                        "Revenue Realized (KWD)": 0,
+                        "Net Profit (KWD)": 0
+                    };
+                }
+                productMap[key]["Units Sold"] += qty;
+                productMap[key]["Landed Cost (KWD)"] += cogsLine;
+                productMap[key]["Revenue Realized (KWD)"] += (grossLine - discount);
+                productMap[key]["Net Profit (KWD)"] += netLineProfit;
+            });
+
+            const productRows = Object.values(productMap).map(p => ({
+                ...p,
+                "Margin %": (p["Revenue Realized (KWD)"] > 0 ? ((p["Net Profit (KWD)"] / p["Revenue Realized (KWD)"]) * 100).toFixed(1) : "0.0") + "%"
+            }));
+
+            // 3. Current Stock Valuation
+            const stockRows = globalInventory.map(item => ({
+                "Shop": shopNames[item.shop] || "Unknown",
+                "Brand": item.brand,
+                "Model": item.model,
+                "Supplier": item.supplier_name || "Direct Import",
+                "Available Qty": parseInt(item.qty),
+                "Landed Unit Cost (KWD)": parseFloat(item.buy_price || 0),
+                "Total Capital Tied Up (KWD)": (parseFloat(item.buy_price || 0) * parseInt(item.qty || 0)),
+                "Retail Unit Price (KWD)": parseFloat(item.sell_price || 0),
+                "Potential Retail Value (KWD)": (parseFloat(item.sell_price || 0) * parseInt(item.qty || 0))
+            }));
+
+            // 4. Customer Receivables
+            const customerRows = globalCustomers.map(cust => ({
+                "Client Name": cust.name,
+                "Phone": cust.phone || "—",
+                "Type": cust.type || "Retail",
+                "Total Purchases": parseInt(cust.paid || 0),
+                "Outstanding Credit Balance (KWD)": parseFloat(cust.credit || 0)
+            }));
+
+            // 5. Supplier Payables
+            const supplierRows = globalSuppliers.map(sup => ({
+                "Supplier Name": sup.name,
+                "Contact Person": sup.contact || "—",
+                "Phone": sup.phone || "—",
+                "Country": sup.country || "—",
+                "Our Outstanding Debt (KWD)": parseFloat(sup.outstanding || 0)
+            }));
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(summaryRows), "Executive P&L Summary");
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(productRows), "Product Performance P&L");
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(stockRows), "Current Stock Valuation");
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(customerRows), "Customer Receivables");
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(supplierRows), "Supplier Payables");
+
+            XLSX.writeFile(workbook, `Al_Wadi_Complete_Financial_Package_${new Date().toISOString().slice(0, 10)}.xlsx`);
         }
     </script>
 </body>
