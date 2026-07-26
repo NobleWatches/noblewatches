@@ -82,7 +82,7 @@
             <button onclick="switchTab('sales')" id="tab-sales" class="px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-400 hover:text-white focus:outline-none whitespace-nowrap cursor-pointer">Sales Logs</button>
             <button onclick="switchTab('customers')" id="tab-customers" class="px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-400 hover:text-white focus:outline-none whitespace-nowrap cursor-pointer">Customers Credit</button>
             <button onclick="switchTab('suppliers')" id="tab-suppliers" class="hidden px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-400 hover:text-white focus:outline-none whitespace-nowrap cursor-pointer">Suppliers Ledger</button>
-            <button onclick="switchTab('reports')" id="tab-reports" class="hidden px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-400 hover:text-white focus:outline-none whitespace-nowrap cursor-pointer">Financial Reports 📊</button>
+            <button onclick="switchTab('reports')" id="tab-reports" class="hidden px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-400 hover:text-white focus:outline-none whitespace-nowrap cursor-pointer">Financial Statements 🏛️</button>
         </nav>
 
         <main class="flex-1 p-6 max-w-7xl w-full mx-auto">
@@ -225,7 +225,7 @@
                 </div>
             </section>
 
-            <!-- FINANCIAL REPORTS HUB VIEW -->
+            <!-- CORPORATE FINANCIAL STATEMENTS HUB VIEW -->
             <section id="view-reports" class="hidden space-y-6">
                 <!-- CONTROLS & FILTER BAR -->
                 <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 flex flex-wrap items-center justify-between gap-4">
@@ -255,32 +255,106 @@
                     </button>
                 </div>
 
-                <!-- EXECUTIVE P&L CARDS -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Gross Sales Revenue</p>
-                        <h4 id="report-stat-revenue" class="text-2xl font-bold mt-1 text-white">0.000 KD</h4>
+                <!-- SUB-VIEW TAB NAVIGATION FOR CORPORATE STATEMENTS -->
+                <div class="flex gap-2 border-b border-gray-700 pb-2">
+                    <button onclick="switchReportSubTab('income_statement')" id="subtab-income_statement" class="px-4 py-2 font-bold text-xs uppercase rounded bg-yellow-600 text-white cursor-pointer">1. Corporate Income Statement (P&L)</button>
+                    <button onclick="switchReportSubTab('balance_sheet')" id="subtab-balance_sheet" class="px-4 py-2 font-bold text-xs uppercase rounded bg-gray-800 text-gray-400 hover:text-white cursor-pointer">2. Balance Sheet (Assets & Liabilities)</button>
+                    <button onclick="switchReportSubTab('product_pnl')" id="subtab-product_pnl" class="px-4 py-2 font-bold text-xs uppercase rounded bg-gray-800 text-gray-400 hover:text-white cursor-pointer">3. Product & Margin Ledger</button>
+                </div>
+
+                <!-- SUB-TAB 1: FORMAL CORPORATE INCOME STATEMENT -->
+                <div id="subview-income_statement" class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl space-y-6">
+                    <div class="border-b border-gray-700 pb-3 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-xl font-bold text-yellow-500">Al Wadi Watches Co. — Consolidated Income Statement</h3>
+                            <p class="text-xs text-gray-400">Standard GAAP format revenue, cost of sales, operating margins, and profit statement.</p>
+                        </div>
+                        <span class="text-xs bg-gray-700 border border-gray-600 px-3 py-1 rounded text-gray-300 font-mono">Currency: Kuwaiti Dinar (KWD)</span>
                     </div>
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Cost of Goods Sold (COGS)</p>
-                        <h4 id="report-stat-cogs" class="text-2xl font-bold mt-1 text-sky-400">0.000 KD</h4>
-                    </div>
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Total Discounts Allowed</p>
-                        <h4 id="report-stat-discounts" class="text-2xl font-bold mt-1 text-red-400">0.000 KD</h4>
-                    </div>
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Net Realized Profit</p>
-                        <h4 id="report-stat-net-profit" class="text-2xl font-bold mt-1 text-yellow-500">0.000 KD</h4>
-                    </div>
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Profit Margin %</p>
-                        <h4 id="report-stat-margin" class="text-2xl font-bold mt-1 text-emerald-400">0.0%</h4>
+
+                    <div class="space-y-2 text-sm font-mono">
+                        <div class="flex justify-between py-2 border-b border-gray-700">
+                            <span class="font-bold text-white">Gross Sales Revenue</span>
+                            <span id="pnl-gross-revenue" class="font-bold text-white">0.000 KD</span>
+                        </div>
+                        <div class="flex justify-between py-2 border-b border-gray-700 text-red-400 pl-4">
+                            <span>Less: Trade Discounts & Allowances</span>
+                            <span id="pnl-discounts">(0.000 KD)</span>
+                        </div>
+                        <div class="flex justify-between py-2 border-b border-gray-600 bg-gray-900/50 px-3 font-bold text-emerald-400">
+                            <span>NET SALES REVENUE</span>
+                            <span id="pnl-net-revenue">0.000 KD</span>
+                        </div>
+
+                        <div class="flex justify-between py-2 border-b border-gray-700 text-sky-400 pl-4 mt-2">
+                            <span>Less: Cost of Goods Sold (Landed Inventory Cost)</span>
+                            <span id="pnl-cogs">(0.000 KD)</span>
+                        </div>
+                        <div class="flex justify-between py-2 border-b-2 border-yellow-500 bg-gray-900 px-3 font-bold text-yellow-500 text-base">
+                            <span>GROSS OPERATING PROFIT</span>
+                            <span id="pnl-gross-profit">0.000 KD</span>
+                        </div>
+
+                        <div class="flex justify-between py-2 pt-4">
+                            <span class="text-gray-400">Gross Operating Profit Margin</span>
+                            <span id="pnl-profit-margin" class="font-bold text-emerald-400">0.0%</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- PRODUCT-WISE PROFIT & LOSS TABLE -->
-                <div class="bg-gray-800 rounded-xl border border-gray-700 p-5 space-y-4 shadow-xl">
+                <!-- SUB-TAB 2: CORPORATE BALANCE SHEET -->
+                <div id="subview-balance_sheet" class="hidden bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl space-y-6">
+                    <div class="border-b border-gray-700 pb-3 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-xl font-bold text-yellow-500">Al Wadi Watches Co. — Statement of Financial Position (Balance Sheet)</h3>
+                            <p class="text-xs text-gray-400">Asset evaluation, liabilities, and retained capital structure snapshot.</p>
+                        </div>
+                        <span class="text-xs bg-gray-700 border border-gray-600 px-3 py-1 rounded text-gray-300 font-mono">Currency: Kuwaiti Dinar (KWD)</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- ASSETS -->
+                        <div class="bg-gray-900 p-4 rounded-xl border border-gray-700 space-y-3">
+                            <h4 class="text-md font-bold text-emerald-400 border-b border-gray-700 pb-2 uppercase">1. CURRENT ASSETS</h4>
+                            <div class="flex justify-between text-xs py-1 border-b border-gray-800">
+                                <span class="text-gray-300">Active Inventory Asset Value (At Landed Cost)</span>
+                                <span id="bs-asset-inventory" class="font-bold text-white">0.000 KD</span>
+                            </div>
+                            <div class="flex justify-between text-xs py-1 border-b border-gray-800">
+                                <span class="text-gray-300">Accounts Receivable (Customer Credit Owed)</span>
+                                <span id="bs-asset-receivables" class="font-bold text-white">0.000 KD</span>
+                            </div>
+                            <div class="flex justify-between text-xs py-1 border-b border-gray-800">
+                                <span class="text-gray-300">Accumulated Realized Cash Profit</span>
+                                <span id="bs-asset-cash" class="font-bold text-white">0.000 KD</span>
+                            </div>
+                            <div class="flex justify-between text-sm py-2 bg-gray-800 px-2 rounded font-bold text-emerald-400">
+                                <span>TOTAL CORPORATE ASSETS</span>
+                                <span id="bs-total-assets">0.000 KD</span>
+                            </div>
+                        </div>
+
+                        <!-- LIABILITIES & EQUITY -->
+                        <div class="bg-gray-900 p-4 rounded-xl border border-gray-700 space-y-3">
+                            <h4 class="text-md font-bold text-red-400 border-b border-gray-700 pb-2 uppercase">2. LIABILITIES & CAPITAL</h4>
+                            <div class="flex justify-between text-xs py-1 border-b border-gray-800">
+                                <span class="text-gray-300">Accounts Payable (Owed to China Suppliers)</span>
+                                <span id="bs-liability-payables" class="font-bold text-red-400">0.000 KD</span>
+                            </div>
+                            <div class="flex justify-between text-xs py-1 border-b border-gray-800">
+                                <span class="text-gray-300">Net Corporate Equity & Retained Value</span>
+                                <span id="bs-equity-net" class="font-bold text-yellow-500">0.000 KD</span>
+                            </div>
+                            <div class="flex justify-between text-sm py-2 bg-gray-800 px-2 rounded font-bold text-sky-400 mt-6">
+                                <span>TOTAL LIABILITIES & EQUITY</span>
+                                <span id="bs-total-liabilities-equity">0.000 KD</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUB-TAB 3: PRODUCT-WISE PROFIT & LOSS TABLE -->
+                <div id="subview-product_pnl" class="hidden bg-gray-800 rounded-xl border border-gray-700 p-5 space-y-4 shadow-xl">
                     <div class="flex flex-wrap justify-between items-center gap-3">
                         <div>
                             <h3 class="text-lg font-bold text-yellow-500">Product-Wise Profit & Margin Ledger</h3>
@@ -1430,6 +1504,27 @@
 
         // ================= FINANCIAL REPORT & EXCEL EXPORT ENGINE ================= //
 
+        function switchReportSubTab(subTabId) {
+            ['income_statement', 'balance_sheet', 'product_pnl'].forEach(st => {
+                const view = document.getElementById(`subview-${st}`);
+                const btn = document.getElementById(`subtab-${st}`);
+                if (view) view.classList.add('hidden');
+                if (btn) {
+                    btn.classList.remove('bg-yellow-600', 'text-white');
+                    btn.classList.add('bg-gray-800', 'text-gray-400');
+                }
+            });
+
+            const activeView = document.getElementById(`subview-${subTabId}`);
+            if (activeView) activeView.classList.remove('hidden');
+
+            const activeBtn = document.getElementById(`subtab-${subTabId}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-gray-800', 'text-gray-400');
+                activeBtn.classList.add('bg-yellow-600', 'text-white');
+            }
+        }
+
         function handleReportPresetChange() {
             const preset = document.getElementById('report-date-preset').value;
             const fromInput = document.getElementById('report-date-from');
@@ -1517,13 +1612,44 @@
                 productMap[key].netProfit += netLineProfit;
             });
 
-            const marginPct = grossRevenue > 0 ? ((netProfit / grossRevenue) * 100).toFixed(1) : "0.0";
+            const netSales = grossRevenue - totalDiscounts;
+            const marginPct = netSales > 0 ? ((netProfit / netSales) * 100).toFixed(1) : "0.0";
 
-            document.getElementById('report-stat-revenue').textContent = grossRevenue.toFixed(3) + " KD";
-            document.getElementById('report-stat-cogs').textContent = totalCogs.toFixed(3) + " KD";
-            document.getElementById('report-stat-discounts').textContent = totalDiscounts.toFixed(3) + " KD";
-            document.getElementById('report-stat-net-profit').textContent = netProfit.toFixed(3) + " KD";
-            document.getElementById('report-stat-margin').textContent = marginPct + "%";
+            // Populate Income Statement (P&L) Fields
+            document.getElementById('pnl-gross-revenue').textContent = grossRevenue.toFixed(3) + " KD";
+            document.getElementById('pnl-discounts').textContent = `(${totalDiscounts.toFixed(3)} KD)`;
+            document.getElementById('pnl-net-revenue').textContent = netSales.toFixed(3) + " KD";
+            document.getElementById('pnl-cogs').textContent = `(${totalCogs.toFixed(3)} KD)`;
+            document.getElementById('pnl-gross-profit').textContent = netProfit.toFixed(3) + " KD";
+            document.getElementById('pnl-profit-margin').textContent = marginPct + "%";
+
+            // Populate Balance Sheet Fields
+            let totalStockVal = 0;
+            globalInventory.forEach(item => {
+                totalStockVal += (parseFloat(item.buy_price || 0) * parseInt(item.qty || 0));
+            });
+
+            let totalReceivables = 0;
+            globalCustomers.forEach(cust => {
+                totalReceivables += parseFloat(cust.credit || 0);
+            });
+
+            let totalPayables = 0;
+            globalSuppliers.forEach(sup => {
+                totalPayables += parseFloat(sup.outstanding || 0);
+            });
+
+            const totalAssets = totalStockVal + totalReceivables + netProfit;
+            const netEquity = totalAssets - totalPayables;
+
+            document.getElementById('bs-asset-inventory').textContent = totalStockVal.toFixed(3) + " KD";
+            document.getElementById('bs-asset-receivables').textContent = totalReceivables.toFixed(3) + " KD";
+            document.getElementById('bs-asset-cash').textContent = netProfit.toFixed(3) + " KD";
+            document.getElementById('bs-total-assets').textContent = totalAssets.toFixed(3) + " KD";
+
+            document.getElementById('bs-liability-payables').textContent = totalPayables.toFixed(3) + " KD";
+            document.getElementById('bs-equity-net').textContent = netEquity.toFixed(3) + " KD";
+            document.getElementById('bs-total-liabilities-equity').textContent = (totalPayables + netEquity).toFixed(3) + " KD";
 
             // Render Product-Wise P&L Table
             const tbody = document.getElementById('table-report-product-pnl');
@@ -1617,7 +1743,7 @@
             
             const filteredSales = getFilteredReportSales();
 
-            // 1. Executive P&L Summary
+            // 1. Corporate Income Statement
             let grossRev = 0; let totalCogs = 0; let totalDisc = 0; let netProf = 0;
             filteredSales.forEach(s => {
                 const qty = parseInt(s.qty || 1);
@@ -1630,16 +1756,47 @@
                 netProf += parseFloat(s.profit || (grossLine - discLine - cogsLine));
             });
 
-            const summaryRows = [{
-                "Report Generated On": new Date().toLocaleString(),
-                "Gross Sales Revenue (KWD)": grossRev.toFixed(3),
-                "Cost of Goods Sold - COGS (KWD)": totalCogs.toFixed(3),
-                "Total Discounts Applied (KWD)": totalDisc.toFixed(3),
-                "Net Realized Profit (KWD)": netProf.toFixed(3),
-                "Overall Profit Margin (%)": (grossRev > 0 ? ((netProf / grossRev) * 100).toFixed(1) : "0.0") + "%"
-            }];
+            const netSales = grossRev - totalDisc;
 
-            // 2. Product-wise P&L
+            const pnlRows = [
+                { "Financial Line Item": "Gross Sales Revenue", "Amount (KWD)": grossRev.toFixed(3) },
+                { "Financial Line Item": "Less: Sales Discounts", "Amount (KWD)": `-${totalDisc.toFixed(3)}` },
+                { "Financial Line Item": "Net Sales Revenue", "Amount (KWD)": netSales.toFixed(3) },
+                { "Financial Line Item": "Less: Cost of Goods Sold (COGS)", "Amount (KWD)": `-${totalCogs.toFixed(3)}` },
+                { "Financial Line Item": "Net Operating Profit", "Amount (KWD)": netProf.toFixed(3) },
+                { "Financial Line Item": "Profit Margin (%)", "Amount (KWD)": (netSales > 0 ? ((netProf / netSales) * 100).toFixed(1) : "0.0") + "%" }
+            ];
+
+            // 2. Corporate Balance Sheet
+            let totalStockVal = 0;
+            globalInventory.forEach(item => {
+                totalStockVal += (parseFloat(item.buy_price || 0) * parseInt(item.qty || 0));
+            });
+
+            let totalReceivables = 0;
+            globalCustomers.forEach(cust => {
+                totalReceivables += parseFloat(cust.credit || 0);
+            });
+
+            let totalPayables = 0;
+            globalSuppliers.forEach(sup => {
+                totalPayables += parseFloat(sup.outstanding || 0);
+            });
+
+            const totalAssets = totalStockVal + totalReceivables + netProf;
+            const netEquity = totalAssets - totalPayables;
+
+            const bsRows = [
+                { "Category": "1. CURRENT ASSETS", "Line Item": "Inventory Asset Value (At Landed Cost)", "Amount (KWD)": totalStockVal.toFixed(3) },
+                { "Category": "1. CURRENT ASSETS", "Line Item": "Accounts Receivable (Customer Credit)", "Amount (KWD)": totalReceivables.toFixed(3) },
+                { "Category": "1. CURRENT ASSETS", "Line Item": "Accumulated Realized Cash Profit", "Amount (KWD)": netProf.toFixed(3) },
+                { "Category": "1. CURRENT ASSETS", "Line Item": "TOTAL CORPORATE ASSETS", "Amount (KWD)": totalAssets.toFixed(3) },
+                { "Category": "2. LIABILITIES & EQUITY", "Line Item": "Accounts Payable (Owed to China Suppliers)", "Amount (KWD)": totalPayables.toFixed(3) },
+                { "Category": "2. LIABILITIES & EQUITY", "Line Item": "Net Corporate Equity & Retained Value", "Amount (KWD)": netEquity.toFixed(3) },
+                { "Category": "2. LIABILITIES & EQUITY", "Line Item": "TOTAL LIABILITIES & EQUITY", "Amount (KWD)": (totalPayables + netEquity).toFixed(3) }
+            ];
+
+            // 3. Product-wise P&L
             const productMap = {};
             filteredSales.forEach(sale => {
                 const qty = parseInt(sale.qty || 1);
@@ -1670,7 +1827,7 @@
                 "Margin %": (p["Revenue Realized (KWD)"] > 0 ? ((p["Net Profit (KWD)"] / p["Revenue Realized (KWD)"]) * 100).toFixed(1) : "0.0") + "%"
             }));
 
-            // 3. Current Stock Valuation
+            // 4. Current Stock Valuation
             const stockRows = globalInventory.map(item => ({
                 "Shop": shopNames[item.shop] || "Unknown",
                 "Brand": item.brand,
@@ -1683,7 +1840,7 @@
                 "Potential Retail Value (KWD)": (parseFloat(item.sell_price || 0) * parseInt(item.qty || 0))
             }));
 
-            // 4. Customer Receivables
+            // 5. Customer Receivables
             const customerRows = globalCustomers.map(cust => ({
                 "Client Name": cust.name,
                 "Phone": cust.phone || "—",
@@ -1692,7 +1849,7 @@
                 "Outstanding Credit Balance (KWD)": parseFloat(cust.credit || 0)
             }));
 
-            // 5. Supplier Payables
+            // 6. Supplier Payables
             const supplierRows = globalSuppliers.map(sup => ({
                 "Supplier Name": sup.name,
                 "Contact Person": sup.contact || "—",
@@ -1702,13 +1859,14 @@
             }));
 
             const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(summaryRows), "Executive P&L Summary");
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(pnlRows), "Income Statement P&L");
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(bsRows), "Balance Sheet");
             XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(productRows), "Product Performance P&L");
-            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(stockRows), "Current Stock Valuation");
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(stockRows), "Stock Valuation");
             XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(customerRows), "Customer Receivables");
             XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(supplierRows), "Supplier Payables");
 
-            XLSX.writeFile(workbook, `Al_Wadi_Complete_Financial_Package_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            XLSX.writeFile(workbook, `Al_Wadi_Corporate_Financial_Package_${new Date().toISOString().slice(0, 10)}.xlsx`);
         }
     </script>
 </body>
